@@ -1,0 +1,3 @@
+#define man_bomber_VERSION_MAJOR @man_bomber_VERSION_MAJOR@
+#define man_bomber_VERSION_MINOR @man_bomber_VERSION_MINOR@
+

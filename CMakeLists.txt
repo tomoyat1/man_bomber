@@ -1,0 +1,13 @@
+cmake_minimum_required (VERSION 2.6)
+project (man_bomber)
+set (man_bomber_VERSION_MAJOR 0)
+set (man_bomber_VERSION_MINOR 1)
+set (EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
+
+configure_file (
+	"${PROJECT_SOURCE_DIR}/src/include/man_bomber_config.h.in"
+	"${PROJECT_SOURCE_DIR}/src/include/man_bomber_config.h"
+	)
+
+include_directories("${PROJECT_SOURCE_DIR}/src/include/")
+add_executable(srv src/srv.c)
