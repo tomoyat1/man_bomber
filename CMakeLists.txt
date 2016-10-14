@@ -10,4 +10,4 @@ configure_file (
 	)
 
 include_directories("${PROJECT_SOURCE_DIR}/src/include/")
-add_executable(srv src/srv.c)
+add_executable(manbomber-srv src/srv.c)
