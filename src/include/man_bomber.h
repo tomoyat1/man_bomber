@@ -1,15 +1,15 @@
-struct bomb {
+struct bomb_t {
 	int id;
 	int x;
 	int y;
-	int vx; /* Velocity in X dir */
-	int vy; /* Velocity in Y dir */
+	int vx;
+	int vy;
 	int time; /* in game ticks */
 	int aoe; /* area of effect */
 };
 
-struct player {
+struct player_t {
 	int x;
 	int y;
-	int bombs;
+	int my_bombs;
 };
