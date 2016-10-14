@@ -6,11 +6,10 @@ struct bomb {
 	int vy; /* Velocity in Y dir */
 	int time; /* in game ticks */
 	int aoe; /* area of effect */
-}:
+};
 
 struct player {
 	int x;
 	int y;
 	int bombs;
-}
-
+};
