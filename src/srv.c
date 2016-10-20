@@ -4,11 +4,49 @@
 
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/un.h>
 #include <unistd.h>
 
 #include "man_bomber.h"
 #include "man_bomber_config.h"
+#include "master.h"
+#include "slave.h"
+
+void spawn_slaves()
+{
+	int i;
+	pid_t tmp;
+	struct sockaddr_un addr;
+	int addr_len;
+
+	/* Open domain socket and bind */
+	if ((domain_sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+		perror("domain socket socket\n");
+	}
+	addr.sun_family = AF_UNIX;
+	addr_len = sizeof(addr);
+	strcpy(addr.sun_path, "/var/tmp/man-bomber-master.socket");
+	unlink("/var/tmp/man-bomber-master.socket");
+	if (bind(domain_sock, (struct sockaddr *)&addr, addr_len) == -1) {
+		perror("domain socket bind\n");
+		exit(1);
+	}
+
+	for (i = 0; i < 4; i++) {
+		tmp = fork();
+		/* Domain socket foo */
+		if (tmp != 0) {
+			slaves[i] = tmp;
+			connect_to_slave(i);
+		} else {
+			/* Will not return till server death */
+			init_slave(i);
+			break;
+		}
+	}
+}
 
 int srv_init()
 {
@@ -30,29 +68,9 @@ int srv_init()
 	close(1);
 	dup(logfd);
 	close(0);
-}
 
-int srv_loop()
-{
-	int i;
-	FILE *log, *err;
-	time_t start_time;
-	struct tm *tmptr;
-	char fmt_time[64];
-	log = fdopen(1, "a");
-	err = fdopen(2, "a");
-	/* Log server startup */
-	start_time = time(NULL);
-	tmptr = localtime(&start_time);
-	strftime(fmt_time, sizeof(fmt_time), "%F %H:%M", tmptr);
-
-	fprintf(stdout, "%s\n", fmt_time);
-	for (i = 0; 1; i++) {
-		fprintf(stdout, "log: %d\n", i);
-		fprintf(stderr, "err: %d\n", i);
-		sleep(3);
-	}
-	return 0;
+	/* Span slaves */
+	spawn_slaves();
 }
 
 int main(int argc, char **argv)
@@ -68,12 +86,10 @@ int main(int argc, char **argv)
 		umask(0);
 		srv_init();
 		sid = setsid();
-		srv_loop_ret = srv_loop();
+		srv_loop_ret = master_loop();
 		exit(srv_loop_ret);
 	} else {
-		printf("Child pid: %d\n", pid);
-		sleep(1);
-		execlp("man", "man", "man", NULL);
+		printf("Server started as pid: %d\n", pid);
 		exit(0);
 	}
 }

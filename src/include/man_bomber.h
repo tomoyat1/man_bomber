@@ -25,7 +25,7 @@ struct client_data {
 	unsigned int id;
 	struct player p;
 	/* Variable lenght array of struct bombs */
-	struct *bomb bombs;
+	struct bomb *bombs;
 	/* Current tick. Ignore data if not in sync with server. */
 	unsigned int cur_tick;
 };
