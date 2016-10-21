@@ -11,7 +11,7 @@ configure_file (
 	)
 
 include_directories("${PROJECT_SOURCE_DIR}/src/include/")
-add_executable(manbomber-srv src/srv.c src/srv-master.c src/srv-slave.c)
+add_executable(manbomber-srv src/srv/srv.c src/srv/srv-master.c src/srv/srv-slave.c)
 
 option(HOGE_FUGA "Return fuga\n to hoge\r\n" OFF)
 if(HOGE_FUGA)
