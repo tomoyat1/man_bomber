@@ -49,7 +49,7 @@ int master_loop()
 		char buf[CMSG_SPACE(sizeof(int))];
 		struct cmsghdr align;
 	} u;
-	struct iovec iov;
+	struct iovec iov[1];
 
 	log = fdopen(1, "a");
 	err = fdopen(2, "a");
@@ -89,27 +89,19 @@ int master_loop()
 		memset(&msg, 0, sizeof(msg));
 		msg.msg_control = u.buf;
 		msg.msg_controllen = sizeof(u.buf);
-		iov.iov_base = &fromaddr;
-		iov.iov_len = sizeof(fromaddr);
-		msg.msg_iov = &iov;
+		iov[0].iov_base = &fromaddr;
+		iov[0].iov_len = sizeof(fromaddr);
+		msg.msg_iov = iov;
 		msg.msg_iovlen = 1;
 		cmsg = CMSG_FIRSTHDR(&msg);
 		cmsg->cmsg_level = SOL_SOCKET;
 		cmsg->cmsg_type = SCM_RIGHTS;
 		cmsg->cmsg_len = CMSG_LEN(sizeof(int));
 		*((int *)CMSG_DATA(cmsg)) = client_sock;
-		msg.msg_controllen = cmsg->cmsg_len;
-		//sendmsg(slave_socks[0], &msg, 0);
-		/*
-		if (send(slave_socks[0], "Hello", 5, 0) == -1) {
-			perror("master socket send");
-		}
-		*/
 		if (sendmsg(slave_socks[0], &msg, 0) == -1) {
 			perror("master socket send");
 		}
-		//printf("%d bytes sent\n", (int)sendmsg(slave_socks[0], &msg, 0));
-		sleep(3);
+		close(client_sock);
 	}
 
 	return 0;

@@ -3,6 +3,7 @@
 #include <time.h>
 
 #include <fcntl.h>
+#include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -17,31 +18,38 @@
 int slave_loop()
 {
 	char buf[512];
-	int read_len;
-	struct msghdr msg = {0};
+	int recv_len;
+	int client_sock;
+
+	struct sockaddr_in fromaddr;
+	struct msghdr msg;
 	struct cmsghdr *cmsg;
 	union {
 		char buf[CMSG_SPACE(sizeof(int))];
 		struct cmsghdr align;
 	} u;
-
-	msg.msg_control = u.buf;
-	msg.msg_controllen = sizeof(u.buf);
-	cmsg = CMSG_FIRSTHDR(&msg);
-	cmsg->cmsg_level = SOL_SOCKET;
-	cmsg->cmsg_type = SCM_RIGHTS;
-	cmsg->cmsg_len = CMSG_LEN(sizeof(int));
-	msg.msg_controllen = cmsg->cmsg_len;
+	struct iovec iov[1];
 
 	printf("Slave loop\n");
 	while (1) {
-		if (recvmsg(master_sock, &msg, 0) == -1)
+		memset(&msg, 0, sizeof(msg));
+		msg.msg_control = u.buf;
+		msg.msg_controllen = sizeof(u.buf);
+		iov[0].iov_base = &fromaddr;
+		iov[0].iov_len = sizeof(fromaddr);
+		msg.msg_iov = iov;
+		msg.msg_iovlen = 1;
+		cmsg = CMSG_FIRSTHDR(&msg);
+		cmsg->cmsg_level = SOL_SOCKET;
+		cmsg->cmsg_type = SCM_RIGHTS;
+		cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+		//msg.msg_controllen = cmsg->cmsg_len;
+		if ((recvmsg(master_sock, &msg, MSG_WAITALL)) == -1)
 			perror("slave domain recv");
-		printf("fd: %d\n", *((int *)CMSG_DATA(CMSG_FIRSTHDR(&msg))));
-		while (1) {
-			printf("socket recved\n");
-			sleep(3);
-		}
+		client_sock = *((int *)CMSG_DATA(CMSG_FIRSTHDR(&msg)));
+		send(client_sock, "Hello\n", 6, 0);
+		recv_len = recv(client_sock, buf, sizeof(buf), 0);
+		close(client_sock);
 	}
 }
 
