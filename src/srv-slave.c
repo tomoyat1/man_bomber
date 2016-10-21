@@ -32,6 +32,7 @@ int slave_loop()
 
 	printf("Slave loop\n");
 	while (1) {
+		memset(buf, 0, sizeof(buf));
 		memset(&msg, 0, sizeof(msg));
 		msg.msg_control = u.buf;
 		msg.msg_controllen = sizeof(u.buf);
@@ -49,6 +50,12 @@ int slave_loop()
 		client_sock = *((int *)CMSG_DATA(CMSG_FIRSTHDR(&msg)));
 		send(client_sock, "Hello\n", 6, 0);
 		recv_len = recv(client_sock, buf, sizeof(buf), 0);
+#if ENABLE_HOGE_FUGA
+		if (strcmp(buf, "hoge\r\n") == 0)
+			send(client_sock, "fuga\n", 5, 0);
+		else
+			send(client_sock, "???\n", 5, 0);
+#endif /* ENABLE_HOGE_FUGA */
 		close(client_sock);
 	}
 }
