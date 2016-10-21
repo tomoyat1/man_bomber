@@ -15,6 +15,26 @@
 
 #include "slave.h"
 
+int init_slave(int i);
+int slave_loop();
+
+int init_slave(int i)
+{
+	struct sockaddr_un addr;
+	int addr_len;
+
+	printf("slave %d initializing (pid: %d)\n", i, getpid());
+	/* Connect to master */
+	master_sock = socket(AF_UNIX, SOCK_STREAM, 0);
+	addr.sun_family = AF_UNIX;
+	strcpy(addr.sun_path, "/var/tmp/man-bomber-master.socket");
+	addr_len = sizeof(addr);
+	if (connect(master_sock, (struct sockaddr *)&addr, addr_len) == -1)
+		perror("domain slave connect");
+
+	slave_loop();
+}
+
 int slave_loop()
 {
 	char buf[512];
@@ -58,21 +78,4 @@ int slave_loop()
 #endif /* ENABLE_HOGE_FUGA */
 		close(client_sock);
 	}
-}
-
-int init_slave(int i)
-{
-	struct sockaddr_un addr;
-	int addr_len;
-
-	printf("slave %d initializing (pid: %d)\n", i, getpid());
-	/* Connect to master */
-	master_sock = socket(AF_UNIX, SOCK_STREAM, 0);
-	addr.sun_family = AF_UNIX;
-	strcpy(addr.sun_path, "/var/tmp/man-bomber-master.socket");
-	addr_len = sizeof(addr);
-	if (connect(master_sock, (struct sockaddr *)&addr, addr_len) == -1)
-		perror("domain slave connect");
-
-	slave_loop();
 }

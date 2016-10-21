@@ -14,6 +14,50 @@
 #include "master.h"
 #include "slave.h"
 
+void spawn_slaves();
+int srv_init();
+void usage();
+
+int main(int argc, char **argv)
+{
+	int srv_loop_ret;
+	char c;
+	char *addr = NULL;
+	int port = -1;
+	pid_t pid, sid;
+	printf("Start $ man bomber server version %d.%d\n",
+	    man_bomber_VERSION_MAJOR,
+	    man_bomber_VERSION_MINOR);
+	/* Parse options */
+	while ((c = getopt(argc, argv, "b:p:")) != -1) {
+		switch (c)  {
+		case 'b':
+			addr = optarg;
+			break;
+		case 'p':
+			port = atoi(optarg);
+			break;
+		case '?':
+			usage();
+			return 1;
+		default:
+			abort();
+		}
+	}
+	pid = fork();
+	if (pid == 0) {
+		/* Start server loop */
+		umask(0);
+		srv_init();
+		sid = setsid();
+		srv_loop_ret = master_loop(addr, port);
+		exit(srv_loop_ret);
+	} else {
+		printf("Server started as pid: %d\n", pid);
+		exit(0);
+	}
+}
+
 void spawn_slaves()
 {
 	int i;
@@ -78,44 +122,4 @@ void usage()
 	fprintf(stderr, "manbomber-srv [-b address] [-p port]\n");
 	fprintf(stderr, "  -b <value>\tIPv4 address to bind to. Defaults to 0.0.0.0\n");
 	fprintf(stderr, "  -p <value>\tPort number bind to. Defaults to 12345\n");
-}
-
-int main(int argc, char **argv)
-{
-	int srv_loop_ret;
-	char c;
-	char *addr = NULL;
-	int port = -1;
-	pid_t pid, sid;
-	printf("Start $ man bomber server version %d.%d\n",
-	    man_bomber_VERSION_MAJOR,
-	    man_bomber_VERSION_MINOR);
-	/* Parse options */
-	while ((c = getopt(argc, argv, "b:p:")) != -1) {
-		switch (c)  {
-		case 'b':
-			addr = optarg;
-			break;
-		case 'p':
-			port = atoi(optarg);
-			break;
-		case '?':
-			usage();
-			return 1;
-		default:
-			abort();
-		}
-	}
-	pid = fork();
-	if (pid == 0) {
-		/* Start server loop */
-		umask(0);
-		srv_init();
-		sid = setsid();
-		srv_loop_ret = master_loop(addr, port);
-		exit(srv_loop_ret);
-	} else {
-		printf("Server started as pid: %d\n", pid);
-		exit(0);
-	}
 }

@@ -1,3 +1,6 @@
+#ifndef _SLAVE__H_
+#define _SLAVE__H_
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -12,3 +15,5 @@
 static int master_sock;
 
 int init_slave();
+
+#endif /* _SLAVE__H_ */

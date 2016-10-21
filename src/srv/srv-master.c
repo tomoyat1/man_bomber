@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include "master.h"
 
+void connect_to_slave(int i);
+
 void connect_to_slave(int i)
 {
 	struct sockaddr_un fromaddr;
@@ -27,7 +29,7 @@ void connect_to_slave(int i)
 	/* foo */
 }
 
-
+/* TODO: Refactor */
 int master_loop(char *addr_str, int port)
 {
 	int i;
