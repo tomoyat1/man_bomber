@@ -14,4 +14,4 @@ static int slave_socks[4];
 static int domain_sock;
 static int inet_sock;
 
-int master_loop();
+int master_loop(char *addr_str, int port);

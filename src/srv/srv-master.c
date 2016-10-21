@@ -28,7 +28,7 @@ void connect_to_slave(int i)
 }
 
 
-int master_loop()
+int master_loop(char *addr_str, int port)
 {
 	int i;
 	FILE *log, *err;
@@ -65,8 +65,15 @@ int master_loop()
 	}
 	setsockopt(inet_sock, SOL_SOCKET, SO_REUSEADDR, (const char *)&yes, sizeof(yes));
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = INADDR_ANY;
-	addr.sin_port = htons(12345);
+	if (!addr_str)
+		addr.sin_addr.s_addr = INADDR_ANY;
+	else
+		addr.sin_addr.s_addr = inet_addr(addr_str);
+	
+	if (port < 0)
+		addr.sin_port = htons(12345);
+	else
+		addr.sin_port = htons(port);
 	addr_len = sizeof(addr);
 	fromaddr_len = sizeof(fromaddr);
 	if (bind(inet_sock, (struct sockaddr *)&addr, addr_len) == -1)
