@@ -3,18 +3,23 @@
 
 #include <stddef.h>
 
+/* magic values with no particular meaning */
+#define PLA 0x18fabe0d
+#define BOM 0xdc3bae7b
+#define WAL 0x582da3c1
+
 /*
  * +----------------------------+
  * |Server-client message format|
  * +----------------------------+
  * Server-client messaging will be in the following format
  * -----------------------------------------------------------------------------
- *           player_offset         player_cnt
- * struct metadata | struct player ...... struct player
- *             bomb_offset         bomb_cnt
- *                 | struct bomb   ...... struct bomb
- *             wall_offset         wall_cnt
- *                 | struct wall   ...... struct wall
+ *                     player_offset <--player_cnt------>
+ * struct metadata PLA struct player ...... struct player
+ *                     bomb_offset <--bomb_cnt-------->
+ *                 BOM struct bomb   ...... struct bomb
+ *                     wall_offset <--wall_cnt-------->
+ *                 WAL struct wall   ...... struct wall
  * -----------------------------------------------------------------------------
  * where offsets and cnts are struct metadata fields.
  */
