@@ -89,4 +89,6 @@ struct wall {
 	int is_alive; 
 };
 
+int check_magic(int fd, int magic);
+
 #endif /* _MAN_BOMBER_H_ */
