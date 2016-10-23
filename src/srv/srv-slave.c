@@ -18,6 +18,11 @@
 
 int init_slave(int i);
 int slave_loop();
+int send_end(int fd, long int id);
+int send_single_bomb(int fd, struct bomb *b, int id);
+int send_single_player(int fd, struct player *p, int id);
+int send_state_to_master(int fd, int id, struct player *pl, struct bomb *bo, int bo_cnt);
+
 
 int init_slave(int i)
 {
@@ -33,6 +38,47 @@ int init_slave(int i)
 	if (connect(master_sock, (struct sockaddr *)&addr, addr_len) == -1)
 		perror("domain slave connect");
 	slave_loop();
+}
+
+int send_end(int fd, long int id)
+{
+	int end = END;
+	if (send(fd, &end, sizeof(end), 0) == -1)
+		return -1;
+	if (send(fd, &id, sizeof(int), 0) == -1)
+		return -1;
+}
+
+int send_single_bomb(int fd, struct bomb *b, int id)
+{
+	int  bom = BOM;
+	if (send(fd, &bom, sizeof(int), 0) == -1)
+		return -1;
+	if (send(fd, &id, sizeof(int), 0) == -1)
+		return -1;
+	if (send(fd, b, sizeof(struct bomb), 0) == -1)
+		return -1;
+}
+int send_single_player(int fd, struct player *p, int id)
+{
+	int pla = PLA;
+	if (send(fd, &pla, sizeof(int), 0) == -1)
+		return -1;
+	if (send(fd, &id, sizeof(int), 0) == -1)
+		return -1;
+	if (send(fd, p, sizeof(struct player), 0) == -1)
+		return -1;
+	return 0;
+}
+
+int send_state_to_master(int fd, int id, struct player *pl, struct bomb *bo, int bo_cnt)
+{
+	int i;
+	/* Needs error handling */
+	send_single_player(fd, pl, id);
+	for (i = 0; i < bo_cnt; i++)
+		send_single_bomb(fd, bo, id);
+	send_end(fd, id);
 }
 
 int slave_loop()
@@ -53,7 +99,7 @@ int slave_loop()
 
 	struct metadata cm;
 	/* Hard-coded to max players */
-	struct player pl[4];
+	struct player pl[1];
 	struct bomb *bo;
 	struct wall *wa;
 
@@ -89,36 +135,35 @@ int slave_loop()
 
 		if ((recv_len = recv_player(client_sock,
 		    pl,
-		    cm.player_cnt)) == -1)
+		    1)) == -1)
 			goto end_loop;
 		else
 			msg_len += recv_len;
 
-		printf("recv_len: %d, %d\n", recv_len, sizeof(struct player) * cm.player_cnt);
 		if (!(bo = (struct bomb *)malloc(sizeof(struct bomb)
-		    * cm.bomb_cnt)))
+		    * cm.bomb_cnt))) {
 			fprintf(stderr, "(Slave: %d) out of memory\n", getpid());
+			goto end_loop;
+		}
 		if ((recv_len = recv_bomb(client_sock,
 		    bo,
 		    cm.bomb_cnt)) == -1)
-			goto end_loop;
+			goto free_bo;
 		else
 			msg_len += recv_len;
 
-		if (!(wa = (struct wall *)malloc(sizeof(struct wall)
-		    * cm.wall_cnt)))
-			fprintf(stderr, "(Slave: %d) out of memory\n", getpid());
-		if ((recv_len = recv_wall(client_sock,
-		    wa,
-		    cm.bomb_cnt)) == -1)
-			goto end_loop;
-		else
-			msg_len += recv_len;
+		/* Send state to master */
+		send_state_to_master(master_sock, cm.id, pl, bo, cm.bomb_cnt);
+
+		/* Wait for next tick i.e. wait until packet arrives on domain socket. */
+
+		/* Send state to client and close */
+
 #endif /* ENABLE_HOGE_FUGA */
 
-end_loop:
+free_bo:
 		free(bo);
-		free(wa);
+end_loop:
 		close(client_sock);
 	}
 }

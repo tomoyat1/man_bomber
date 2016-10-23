@@ -9,6 +9,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include "list.h"
 #include "man_bomber.h"
 #include "man_bomber_config.h"
 #include "master.h"

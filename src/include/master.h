@@ -12,10 +12,14 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include "list.h"
+
 static int domain_sock;
 static int inet_sock;
 static int slaves[4];
 static int slave_socks[4];
+
+static struct player players[4];
 
 void connect_to_slave(int i);
 int master_loop(char *addr_str, int port);
