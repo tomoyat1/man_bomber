@@ -28,7 +28,7 @@
 
 struct metadata {
 	/* Client id */
-	long int id;
+	int id;
 
 	/*
 	 * Tick count from beginning of round.
@@ -80,6 +80,8 @@ struct bomb {
 };
 
 struct player {
+	/* Same id as in struct metadata */
+	int id;
 	int x;
 	int y;
 	int bombs;
