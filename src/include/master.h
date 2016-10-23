@@ -17,6 +17,7 @@ static int inet_sock;
 static int slaves[4];
 static int slave_socks[4];
 
+void connect_to_slave(int i);
 int master_loop(char *addr_str, int port);
 
 #endif /* _MASTER_H_ */

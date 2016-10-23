@@ -3,15 +3,22 @@ project (man_bomber)
 set (man_bomber_VERSION_MAJOR 0)
 set (man_bomber_VERSION_MINOR 1)
 set (EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
-set(CMAKE_C_FLAGS "-g")
+
+enable_testing()
 
 configure_file (
 	"${PROJECT_SOURCE_DIR}/src/include/man_bomber_config.h.in"
 	"${PROJECT_SOURCE_DIR}/src/include/man_bomber_config.h"
 	)
 
+set(CMAKE_C_FLAGS_DEBUGE "-Wall -Wextra -g")
+
 include_directories("${PROJECT_SOURCE_DIR}/src/include/")
-add_executable(manbomber-srv src/srv/srv.c src/srv/srv-master.c src/srv/srv-slave.c)
+add_executable(manbomber-srv src/srv/srv.c src/srv/srv-master.c
+	src/srv/srv-slave.c src/lib/magic.c src/lib/recv-data.c)
+add_executable(srv_data_recv tests/srv_data_recv.c)
+
+add_test(srv_data_recv ${EXECUTABLE_OUTPUT_PATH}/srv_data_recv)
 
 option(HOGE_FUGA "Return fuga\n to hoge\r\n" OFF)
 if(HOGE_FUGA)
