@@ -12,7 +12,7 @@ int check_magic(int fd, int magic)
 	char *msg;
 	recv(fd, &val, sizeof(int), 0);
 	if (val == magic)
-		return 0;
+		return 1;
 	else {
 		switch (magic) {
 		case PLA:
@@ -28,7 +28,7 @@ int check_magic(int fd, int magic)
 			msg = "Unknown magic";
 			break;
 		}
-		fprintf(stderr, "(Slave: %d) Magic check fail: %s", getpid(), msg);
-		return 1;
+		fprintf(stderr, "(Slave: %d) Magic check fail: %s\n", getpid(), msg);
+		return 0;
 	}
 }
