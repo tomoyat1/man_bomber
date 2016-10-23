@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#include "list.h"
+
 /* magic values with no particular meaning */
 #define PLA 0x18fabe0d
 #define BOM 0xdc3bae7b
@@ -72,12 +74,18 @@ struct bomb {
 
 	/* 0: dead, 1: alive */
 	int is_alive; 
+
+	/* Linked list node */
+	struct list_node node;
 };
 
 struct player {
 	int x;
 	int y;
 	int bombs;
+
+	/* Linked list node */
+	struct list_node node;
 };
 
 /* Destructable wall */
@@ -87,6 +95,9 @@ struct wall {
 
 	/* 0: dead, 1: alive */
 	int is_alive; 
+
+	/* Linked list node */
+	struct list_node node;
 };
 
 int check_magic(int fd, int magic);
