@@ -23,8 +23,8 @@ int main()
 	b2.y = 8;
 	b3.y = 7;
 
-	list_add(&b2.node, head);
-	list_add(&b3.node, head);
+	list_add(&b2.node, &head);
+	list_add(&b3.node, &head);
 	p1 = list_entry(struct bomb, head, node);
 	p2 = list_entry(struct bomb, head->next, node);
 	p3 = list_entry(struct bomb, head->next->next, node);
