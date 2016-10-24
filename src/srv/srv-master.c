@@ -15,10 +15,19 @@
 #include "man_bomber.h"
 #include "master.h"
 
+int bomb_equals_node_by_coords(struct bomb *b, struct list_node *n);
 void connect_to_slave(int i);
 int recv_magic(int fd);
 int recv_single_bomb(int fd, struct bomb *buf, int *id);
 int recv_single_player(int fd, struct player *buf, int *id);
+struct bomb * search_bomb_by_coords(struct bomb *entry, struct list_node *head);
+
+int bomb_equals_node_by_coords(struct bomb *b, struct list_node *n)
+{
+	int truth = 0;
+	truth &= (list_entry(struct bomb, n, node)->x == b->x);
+	return truth;
+}
 
 void connect_to_slave(int i)
 {
@@ -67,6 +76,9 @@ int master_loop(char *addr_str, int port)
 	struct player *p;
 	struct bomb *b;
 	struct wall *w;
+	struct list_node *p_wait;
+	struct list_node *b_wait;
+	struct list_node *w_wait;
 	int id;
 
 	log = fdopen(1, "a");
@@ -101,6 +113,14 @@ int master_loop(char *addr_str, int port)
 	if (listen(inet_sock, 4) == -1) {
 		perror("inet listen");
 	}
+
+	/* Initialize list heads */
+	p = NULL;
+	b = NULL;
+	w = NULL;
+	p_wait = NULL;
+	b_wait = NULL;
+	w_wait = NULL;
 
 	while (1) {
 		do {
@@ -149,18 +169,30 @@ int master_loop(char *addr_str, int port)
 			int rlen;
 			if (FD_ISSET(slave_socks[i], &rset)) {
 				/* recv state from slave */
+				/* queue state change */
 				switch(recv_magic(slave_socks[i])) {
 				case PLA:
 					p = (struct player *)malloc(sizeof(struct player));
 					rlen = recv_single_player(slave_socks[i], p, &id);
 					if (rlen == -1)
 						perror("recv_single_player");
+					if (!p_wait) {
+						p_wait = &(p->node);
+					} else {
+						list_add(&(b->node), b_wait);
+					}
 					break;
 				case BOM:
 					b = (struct bomb *)malloc(sizeof(struct bomb));
 					rlen = recv_single_bomb(slave_socks[i], b, &id);
 					if (rlen == -1)
 						perror("recv_single_bomb");
+					if (!b_wait) {
+						b_wait = &(b->node);
+					} else {
+						if (!search_bomb_by_coords(b, b_wait))
+							list_add(&(b->node), b_wait);
+					}
 					break;
 				case END:
 					recv(slave_socks[i], &id, sizeof(int), 0);
@@ -168,11 +200,35 @@ int master_loop(char *addr_str, int port)
 				default:
 					fprintf(stderr, "not magic\n");
 				}
-				/* queue state change */
 				/* fall through */
 			}
 		}
 	} return 0;
+}
+
+/* Search for entry in bomb list whose coordinates match entry */
+struct bomb * search_bomb_by_coords(struct bomb *entry, struct list_node *head)
+{
+	struct list_node *cur = head;
+	if (!head)
+		return NULL;
+	while (bomb_equals_node_by_coords(entry, cur) && cur->next != NULL)
+		cur = cur->next;
+	if (!cur->next)
+		return NULL;
+	else
+		return list_entry(struct bomb, cur, node);
+}
+
+struct player * search_player(int id)
+{
+	int i;
+	for (i = 0; i < 4; i++) {
+		if (players[i].id == id)
+			return (players + i);
+		fprintf(stderr, "FATAL ERROR: no player with id %d\n", id);
+		return NULL;
+	}
 }
 
 int recv_magic(int fd)
@@ -194,7 +250,6 @@ int recv_magic(int fd)
 			fprintf(stderr, "(Master) Not magic: %x\n", magic);
 			return -1;
 	}
-
 }
 
 int recv_single_bomb(int fd, struct bomb *buf, int *id)

@@ -15,7 +15,7 @@ set(CMAKE_C_FLAGS_DEBUGE "-Wall -Wextra -g")
 
 include_directories("${PROJECT_SOURCE_DIR}/src/include/")
 add_executable(manbomber-srv src/srv/srv.c src/srv/srv-master.c
-	src/srv/srv-slave.c src/lib/magic.c src/lib/recv-data.c)
+	src/srv/srv-slave.c src/lib/magic.c src/lib/recv-data.c src/lib/list.c)
 add_executable(srv_data_recv tests/srv_data_recv.c)
 add_executable(list tests/list.c src/lib/list.c)
 
