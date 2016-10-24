@@ -14,6 +14,10 @@
 
 #include "list.h"
 
+struct srv_state {
+	long int tick;
+};
+
 static int domain_sock;
 static int inet_sock;
 static int slaves[4];
@@ -22,6 +26,10 @@ static int slave_socks[4];
 static struct player players[4];
 static struct list_node *bombs;
 static struct list_node *walls;
+static struct list_node *p_wait;
+static struct list_node *b_wait;
+static struct list_node *w_wait;
+static struct srv_state state;
 
 void connect_to_slave(int i);
 int master_loop(char *addr_str, int port);

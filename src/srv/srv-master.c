@@ -5,18 +5,23 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <signal.h>
 #include <sys/select.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/un.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "man_bomber.h"
 #include "master.h"
 
 int bomb_equals_node_by_coords(struct bomb *b, struct list_node *n);
+void clear_list(struct list_node **head);
 void connect_to_slave(int i);
+void handle_tick(int signal);
+void init_game_server();
 int recv_magic(int fd);
 int recv_single_bomb(int fd, struct bomb *buf, int *id);
 int recv_single_player(int fd, struct player *buf, int *id);
@@ -29,8 +34,22 @@ int bomb_equals_node_by_coords(struct bomb *b, struct list_node *n)
 	return truth;
 }
 
-void connect_to_slave(int i)
+/* 
+ * This function is here because of memory release problems.
+ * It does not belong in lib.
+ */
+void clear_list(struct list_node **head)
 {
+	/* This function is FUCKED: Double freed */
+	void *payload;
+	while (*head) {
+		payload = list_entry(struct generic, *head, node);
+		list_remove(*head, head);
+		free(payload);
+	}
+}
+
+void connect_to_slave(int i) {
 	struct sockaddr_un fromaddr;
 	int fromaddr_len;
 	int slave_sock;
@@ -43,6 +62,32 @@ void connect_to_slave(int i)
 	if ((slave_socks[i] = accept(domain_sock, (struct sockaddr *)&fromaddr, &fromaddr_len)) == -1)
 		perror("Domain socket accept");
 	/* foo */
+}
+
+void handle_tick(int signal)
+{
+	state.tick++;
+	printf("TICK!: %ld\n", state.tick);
+
+	/* Nuke wait queue */
+	clear_list(&p_wait);
+	clear_list(&b_wait);
+	clear_list(&w_wait);
+}
+
+void init_game_server()
+{
+	/* Initialize game state lists */
+	bombs = NULL;
+	walls = NULL;
+
+	/* Initialize wait lists */
+	p_wait = NULL;
+	b_wait = NULL;
+	w_wait = NULL;
+
+	/* Initialize tick count */
+	state.tick = 0;
 }
 
 /* TODO: Refactor */
@@ -76,10 +121,12 @@ int master_loop(char *addr_str, int port)
 	struct player *p;
 	struct bomb *b;
 	struct wall *w;
-	struct list_node *p_wait;
-	struct list_node *b_wait;
-	struct list_node *w_wait;
 	int id;
+
+	struct sigevent tick_ev;
+	timer_t tick_tm;
+	struct itimerspec tick_spec;
+	sigset_t alrm;
 
 	log = fdopen(1, "a");
 	err = fdopen(2, "a");
@@ -118,9 +165,22 @@ int master_loop(char *addr_str, int port)
 	p = NULL;
 	b = NULL;
 	w = NULL;
-	p_wait = NULL;
-	b_wait = NULL;
-	w_wait = NULL;
+
+	/* Initialize server state */
+	init_game_server();
+
+	/* Register SIGALRM */
+	signal(SIGALRM, handle_tick);
+
+	/* tick timer */
+	tick_ev.sigev_notify = SIGEV_SIGNAL;
+	tick_ev.sigev_signo = SIGALRM;
+	timer_create(CLOCK_REALTIME, &tick_ev, &tick_tm);
+	tick_spec.it_interval.tv_sec = 0;
+	tick_spec.it_interval.tv_nsec = 15625000;
+	tick_spec.it_value.tv_sec = 1;
+	tick_spec.it_value.tv_nsec = 0;
+	timer_settime(tick_tm, 0, &tick_spec, &tick_spec);
 
 	while (1) {
 		do {
@@ -170,24 +230,32 @@ int master_loop(char *addr_str, int port)
 			if (FD_ISSET(slave_socks[i], &rset)) {
 				/* recv state from slave */
 				/* queue state change */
+				sigemptyset(&alrm);
+				sigaddset(&alrm, SIGALRM);
+				sigprocmask(SIG_BLOCK, &alrm, NULL);
 				switch(recv_magic(slave_socks[i])) {
 				case PLA:
 					p = (struct player *)malloc(sizeof(struct player));
-					rlen = recv_single_player(slave_socks[i], p, &id);
+					//INIT_LIST_HEAD(&p->node);
 					if (rlen == -1)
 						perror("recv_single_player");
+					rlen = recv_single_player(slave_socks[i], p, &id);
+					p->id = 0xdeadbeef;
 					if (!p_wait) {
+						p->node.next = NULL;
 						p_wait = &(p->node);
 					} else {
-						list_add(&(b->node), b_wait);
+						list_add(&(p->node), p_wait);
 					}
 					break;
 				case BOM:
 					b = (struct bomb *)malloc(sizeof(struct bomb));
+					//INIT_LIST_HEAD(&b->node);
 					rlen = recv_single_bomb(slave_socks[i], b, &id);
 					if (rlen == -1)
 						perror("recv_single_bomb");
 					if (!b_wait) {
+						b->node.next = NULL;
 						b_wait = &(b->node);
 					} else {
 						if (!search_bomb_by_coords(b, b_wait))
@@ -200,6 +268,7 @@ int master_loop(char *addr_str, int port)
 				default:
 					fprintf(stderr, "not magic\n");
 				}
+				sigprocmask(SIG_UNBLOCK, &alrm, NULL);
 				/* fall through */
 			}
 		}
