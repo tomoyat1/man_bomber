@@ -241,12 +241,7 @@ int master_loop(char *addr_str, int port)
 						perror("recv_single_player");
 					rlen = recv_single_player(slave_socks[i], p, &id);
 					p->id = 0xdeadbeef;
-					if (!p_wait) {
-						p->node.next = NULL;
-						p_wait = &(p->node);
-					} else {
-						list_add(&(p->node), p_wait);
-					}
+					list_add(&(p->node), &p_wait);
 					break;
 				case BOM:
 					b = (struct bomb *)malloc(sizeof(struct bomb));
@@ -254,13 +249,8 @@ int master_loop(char *addr_str, int port)
 					rlen = recv_single_bomb(slave_socks[i], b, &id);
 					if (rlen == -1)
 						perror("recv_single_bomb");
-					if (!b_wait) {
-						b->node.next = NULL;
-						b_wait = &(b->node);
-					} else {
-						if (!search_bomb_by_coords(b, b_wait))
-							list_add(&(b->node), b_wait);
-					}
+					if (!search_bomb_by_coords(b, b_wait))
+						list_add(&(b->node), &b_wait);
 					break;
 				case END:
 					recv(slave_socks[i], &id, sizeof(int), 0);
