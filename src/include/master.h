@@ -15,6 +15,7 @@
 #include "list.h"
 
 #define FUSE 128
+#define EXPLOSION_LEN 32
 
 struct srv_state {
 	long int tick;

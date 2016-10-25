@@ -17,7 +17,9 @@
 #include "man_bomber.h"
 #include "master.h"
 
+void bomb_clean(struct list_node **hot);
 void bomb_countdown(struct list_node **list);
+void bomb_kaboom(struct list_node **list);
 void bomb_prime(struct list_node **queue, struct list_node **hot);
 int bomb_equals_node_by_coords(struct bomb *b, struct list_node *n);
 void clear_list(struct list_node **head);
@@ -31,20 +33,13 @@ struct bomb * search_bomb_by_coords(struct bomb *entry, struct list_node *head);
 void update_bombs();
 void update_players();
 
-void bomb_countdown(struct list_node **hot)
+void bomb_clean(struct list_node **hot)
 {
-#define IS_BOOM(p) \
-	p->timer < -64
+#define IS_GONE(p) \
+	p->timer < -(EXPLOSION_LEN + 32)
 
 	struct list_node *cur, *tmp;
 	struct bomb *b;
-
-	/* Loop on game bombs list */
-	cur = *hot;
-	while (cur) {
-		list_entry(struct bomb, cur, node)->timer--;
-		cur = cur->next;
-	}
 
 	/* Remove bombs one second after detonation */
 	cur = *hot;
@@ -53,17 +48,32 @@ void bomb_countdown(struct list_node **hot)
 		printf("cur->next = %p\n", cur->next);
 		b = list_entry(struct bomb, cur, node);
 		tmp = cur->next;
-		if (IS_BOOM(b)) {
-			tmp = cur->next;
+		if (IS_GONE(b)) {
 			list_remove(cur, hot);
 			printf("free: %p\n", b);
 			free(b);
 		}
 		cur = tmp;
 	}
+#undef IS_GONE
+}
 
+void bomb_countdown(struct list_node **hot)
+{
+	struct list_node *cur;
+	struct bomb *b;
+
+	/* Loop on game bombs list */
+	cur = *hot;
+	while (cur) {
+		list_entry(struct bomb, cur, node)->timer--;
+		cur = cur->next;
+	}
+}
+
+void bomb_kaboom(struct list_node **list)
+{
 	/* Hit detection for bombs upto 0.5s from detonation */
-#undef IS_BOOM
 }
 
 void bomb_prime(struct list_node **queue, struct list_node **hot)
@@ -436,6 +446,8 @@ void update_bombs()
 
 	bomb_countdown(&bombs);
 	bomb_prime(&b_wait, &bombs);
+	bomb_kaboom(&bombs);
+	bomb_clean(&bombs);
 	if (bombs) {
 		foo[0] = list_entry(struct bomb, bombs, node)->timer;
 		foo[1] = list_entry(struct bomb, bombs->next, node)->timer;
