@@ -14,7 +14,10 @@ void list_add(struct list_node *entry, struct list_node **head)
 void list_remove(struct list_node *entry, struct list_node **head)
 {
 	struct list_node **cur = head;
-	while (*cur != entry)
+	while (*cur != entry) {
 		cur = &(*cur)->next;
+		if (!*cur)
+			return;
+	}
 	*cur = (*cur)->next;
 }
