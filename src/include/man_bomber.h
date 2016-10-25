@@ -60,6 +60,9 @@ struct metadata {
 };
 
 struct bomb {
+	/* Linked list node */
+	struct list_node node;
+
 	int id;
 	int x;
 	int y;
@@ -74,30 +77,32 @@ struct bomb {
 
 	/* 0: dead, 1: alive */
 	int is_alive; 
-
-	/* Linked list node */
-	struct list_node node;
 };
 
 struct player {
+	/* Linked list node */
+	struct list_node node;
+
 	/* Same id as in struct metadata */
 	int id;
 	int x;
 	int y;
 	int bombs;
-
-	/* Linked list node */
-	struct list_node node;
 };
 
 /* Destructable wall */
 struct wall {
+	/* Linked list node */
+	struct list_node node;
+
 	int x;
 	int y;
 
 	/* 0: dead, 1: alive */
 	int is_alive; 
+};
 
+struct generic {
 	/* Linked list node */
 	struct list_node node;
 };

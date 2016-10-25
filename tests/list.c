@@ -4,9 +4,11 @@
 
 int main()
 {
+	/* list_add() test */
 	struct bomb b1;
 	struct bomb b2;
 	struct bomb b3;
+	struct bomb b4;
 	struct bomb *p1;
 	struct bomb *p2;
 	struct bomb *p3;
@@ -23,13 +25,21 @@ int main()
 	b2.y = 8;
 	b3.y = 7;
 
-	list_add(&b2.node, head);
-	list_add(&b3.node, head);
+	list_add(&b2.node, &head);
+	list_add(&b3.node, &head);
 	p1 = list_entry(struct bomb, head, node);
 	p2 = list_entry(struct bomb, head->next, node);
 	p3 = list_entry(struct bomb, head->next->next, node);
-	if (p1 == &b1 && p2 == &b2 && p3 == &b3)
-		return 0;
-	else
+	if (p1 != &b1 || p2 != &b2 || p3 != &b3)
 		return 1;
+
+	/* list_remove() test */
+	list_remove(&p2->node, &head);
+	/* should be b3 */
+	p2 = list_entry(struct bomb, head->next, node);
+	if (p2 != &b3)
+		return 1;
+	/* Try removing non-existent node */
+	list_remove(&b4.node, &head);
+	return 0;
 }
