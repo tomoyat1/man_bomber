@@ -27,14 +27,17 @@ int data_send(int sd, struct metadata *data, struct player **pla, struct bomb **
         *pla = (struct player *)malloc(sizeof(struct player));
         send_len = send_player(sd, *pla, data->player_cnt);
 	 msg_len += send_len;
+	free(*pla);
 
         *bo = (struct bomb *)malloc(sizeof(struct bomb));
         send_len = send_bomb(sd, *bo, data->bomb_cnt);
         msg_len += send_len;
+	free(*bo);
 
         *wa = (struct wall *)malloc(sizeof(struct wall));
         send_len = send_wall(sd, *wa, data->wall_cnt);
         msg_len += send_len;
+	free(*wa);	
 
         return 0;
 
