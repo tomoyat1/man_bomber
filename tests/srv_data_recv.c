@@ -15,6 +15,7 @@
 
 int main(int argc, char **argv)
 {
+	int i;
 	int sock;
 	int pla = PLA;
 	int bom = BOM;
@@ -37,7 +38,13 @@ int main(int argc, char **argv)
 	    + sizeof(struct player) * data.player_cnt;
 	data.wall_cnt = 1;
 	data.wall_offset = 0;
-	players[1].id = 0xDEADBEEF;
+
+	players[0].id = 0;
+
+	for (i = 0; i < 10; i++) {
+		bombs[i].x = i;
+		bombs[i].y = 2 * i;
+	}
 	printf("Sending payload\n");
 	send(sock, &data, sizeof(data), 0);
 	send(sock, &pla, sizeof(int), 0);

@@ -33,7 +33,7 @@ int init_slave(int i)
 	/* Connect to master */
 	master_sock = socket(AF_UNIX, SOCK_STREAM, 0);
 	addr.sun_family = AF_UNIX;
-	strcpy(addr.sun_path, "/var/tmp/man-bomber-master.socket");
+	strcpy(addr.sun_path, "/tmp/man-bomber-master.socket");
 	addr_len = sizeof(addr);
 	if (connect(master_sock, (struct sockaddr *)&addr, addr_len) == -1)
 		perror("domain slave connect");

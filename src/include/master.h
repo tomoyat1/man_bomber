@@ -14,6 +14,8 @@
 
 #include "list.h"
 
+#define FUSE 128
+
 struct srv_state {
 	long int tick;
 };

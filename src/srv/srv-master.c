@@ -17,6 +17,8 @@
 #include "man_bomber.h"
 #include "master.h"
 
+void bomb_countdown(struct list_node **list);
+void bomb_prime(struct list_node **queue, struct list_node **hot);
 int bomb_equals_node_by_coords(struct bomb *b, struct list_node *n);
 void clear_list(struct list_node **head);
 void connect_to_slave(int i);
@@ -26,6 +28,64 @@ int recv_magic(int fd);
 int recv_single_bomb(int fd, struct bomb *buf, int *id);
 int recv_single_player(int fd, struct player *buf, int *id);
 struct bomb * search_bomb_by_coords(struct bomb *entry, struct list_node *head);
+void update_bombs();
+void update_players();
+
+void bomb_countdown(struct list_node **hot)
+{
+#define IS_BOOM(p) \
+	p->timer < -64
+
+	struct list_node *cur, *tmp;
+	struct bomb *b;
+
+	/* Loop on game bombs list */
+	cur = *hot;
+	while (cur) {
+		list_entry(struct bomb, cur, node)->timer--;
+		cur = cur->next;
+	}
+
+	/* Remove bombs one second after detonation */
+	cur = *hot;
+	while (cur) {
+		printf("cur = %p\n", cur);
+		printf("cur->next = %p\n", cur->next);
+		b = list_entry(struct bomb, cur, node);
+		tmp = cur->next;
+		if (IS_BOOM(b)) {
+			tmp = cur->next;
+			list_remove(cur, hot);
+			printf("free: %p\n", b);
+			free(b);
+		}
+		cur = tmp;
+	}
+
+	/* Hit detection for bombs upto 0.5s from detonation */
+#undef IS_BOOM
+}
+
+void bomb_prime(struct list_node **queue, struct list_node **hot)
+{
+	struct bomb *b;
+	struct list_node *cur;
+	/* Loop on update queue */
+	cur = *queue;
+	while (cur) {
+		if (!search_bomb_by_coords(list_entry(
+		    struct bomb, cur, node),
+		    bombs)) {
+			if (b = (struct bomb *)malloc(sizeof(struct bomb))) {
+				list_add(&(b->node), hot);
+				list_entry(struct bomb, b, node)->timer = FUSE;
+			} else {
+				fprintf(stderr, "(Slave %d) Out of memory\n", getpid());
+			}
+		}
+		cur = cur->next;
+	}
+}
 
 int bomb_equals_node_by_coords(struct bomb *b, struct list_node *n)
 {
@@ -40,7 +100,6 @@ int bomb_equals_node_by_coords(struct bomb *b, struct list_node *n)
  */
 void clear_list(struct list_node **head)
 {
-	/* This function is FUCKED: Double freed */
 	void *payload;
 	while (*head) {
 		payload = list_entry(struct generic, *head, node);
@@ -68,18 +127,22 @@ void handle_tick(int signal)
 {
 	state.tick++;
 	printf("TICK!: %ld\n", state.tick);
+	update_players();
+	update_bombs();
 
-	/* Nuke wait queue */
-	clear_list(&p_wait);
 	clear_list(&b_wait);
 	clear_list(&w_wait);
 }
 
 void init_game_server()
 {
+	int i;
 	/* Initialize game state lists */
 	bombs = NULL;
 	walls = NULL;
+	memset(players, 0, sizeof(players));
+	for (i = 0; i < 4; i++)
+		players[i].id = i;
 
 	/* Initialize wait lists */
 	p_wait = NULL;
@@ -236,19 +299,18 @@ int master_loop(char *addr_str, int port)
 				switch(recv_magic(slave_socks[i])) {
 				case PLA:
 					p = (struct player *)malloc(sizeof(struct player));
-					//INIT_LIST_HEAD(&p->node);
 					if (rlen == -1)
 						perror("recv_single_player");
 					rlen = recv_single_player(slave_socks[i], p, &id);
-					p->id = 0xdeadbeef;
+					INIT_LIST_HEAD(&(p->node));
 					list_add(&(p->node), &p_wait);
 					break;
 				case BOM:
 					b = (struct bomb *)malloc(sizeof(struct bomb));
-					//INIT_LIST_HEAD(&b->node);
 					rlen = recv_single_bomb(slave_socks[i], b, &id);
 					if (rlen == -1)
 						perror("recv_single_bomb");
+					INIT_LIST_HEAD(&b->node);
 					if (!search_bomb_by_coords(b, b_wait))
 						list_add(&(b->node), &b_wait);
 					break;
@@ -265,30 +327,17 @@ int master_loop(char *addr_str, int port)
 	} return 0;
 }
 
-/* Search for entry in bomb list whose coordinates match entry */
-struct bomb * search_bomb_by_coords(struct bomb *entry, struct list_node *head)
-{
-	struct list_node *cur = head;
-	if (!head)
-		return NULL;
-	while (bomb_equals_node_by_coords(entry, cur) && cur->next != NULL)
-		cur = cur->next;
-	if (!cur->next)
-		return NULL;
-	else
-		return list_entry(struct bomb, cur, node);
-}
-
-struct player * search_player(int id)
+struct player * player_in_state(int id)
 {
 	int i;
 	for (i = 0; i < 4; i++) {
 		if (players[i].id == id)
 			return (players + i);
-		fprintf(stderr, "FATAL ERROR: no player with id %d\n", id);
+		fprintf(stderr, "FATAL ERROR: no player with id %x\n", id);
 		return NULL;
 	}
 }
+
 
 int recv_magic(int fd)
 {
@@ -365,4 +414,47 @@ int recv_single_player(int fd, struct player *buf, int *id)
 	total_len += len;
 
 	return total_len;
+}
+
+/* Search for entry in bomb list whose coordinates match entry */
+struct bomb * search_bomb_by_coords(struct bomb *entry, struct list_node *head)
+{
+	struct list_node *cur = head;
+	if (!head)
+		return NULL;
+	while (bomb_equals_node_by_coords(entry, cur) && cur->next != NULL)
+		cur = cur->next;
+	if (!cur->next)
+		return NULL;
+	else
+		return list_entry(struct bomb, cur, node);
+}
+
+void update_bombs()
+{
+	int foo[10];
+
+	bomb_countdown(&bombs);
+	bomb_prime(&b_wait, &bombs);
+	if (bombs) {
+		foo[0] = list_entry(struct bomb, bombs, node)->timer;
+		foo[1] = list_entry(struct bomb, bombs->next, node)->timer;
+		printf("ticks for bomb[0]: %d\n", foo[0]);
+		printf("ticks for bomb[0]: %d\n", foo[1]);
+	}
+}
+
+void update_players()
+{
+	struct list_node *cur;
+	struct player *p;
+	cur = p_wait;
+	while (cur) {
+		if (p = player_in_state(list_entry(
+		    struct player,
+		    cur,
+		    node)->id))
+			*p = *list_entry(struct player, cur, node);
+		cur = cur->next;
+	}
 }
