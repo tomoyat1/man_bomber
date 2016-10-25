@@ -75,9 +75,6 @@ struct bomb {
 
 	/* area of effect */
 	int aoe; 
-
-	/* 0: dead, 1: alive */
-	int is_alive; 
 };
 
 struct player {
@@ -89,6 +86,9 @@ struct player {
 	int x;
 	int y;
 	int bombs;
+
+	/* 0: dead, 1: alive */
+	int is_alive; 
 };
 
 /* Destructable wall */
