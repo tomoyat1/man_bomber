@@ -3,22 +3,24 @@
 #include <time.h>
 #include <signal.h>
 #include <sys/types.h>
-#include "man_bomber.h"
 
-#define WIDTH 21
-#define HEIGHT 13
+#include "man_bomber.h"
+#include "mainDisplay.h"
+
+#define WIDTH 20
+#define HEIGHT 12
 #define offsetX 4
 #define offsetY 10
 #define xx 0
 #define yy 0
 #define FPS 15625  // sleep time in micro sec
 
-
-int end_flag=0;
+int player_id;
 int x=(offsetX/2)+xx, y=(offsetY/2)+yy; 
 int bt = 0; // 起爆カウント
 bool bomb_on = false;
 int kow[HEIGHT][WIDTH];
+
 /* 0 何もなし
 	 1 壊せない壁
 	 2 壊せる壁
@@ -26,13 +28,32 @@ int kow[HEIGHT][WIDTH];
 	 4 爆弾
 */
 
-/* 破壊可能な壁をkowに登録 */
-void setWall(){
-		for(int k=0; k < me->wall_cnt; k++) 
+/* 破壊可能な壁をkowに登録・描画 */
+void printWall(int wall_cnt, struct wall *wa){
+		/* 初期化 */
+		for(int i=0; i<HEIGHT; i++)
+		for(int j=0; j<WIDTH; j++) kow[i][j]=0;
+
+		for(int k=0; k<wall_cnt; k++) 
+		for(int i=0; i<HEIGHT; i++)
+		for(int j=0; j<WIDTH; j++) if(wa[k].y == i && wa[k].x == j) kow[i][j]=2;
+
+		attrset(COLOR_PAIR(5));
 		for(int i=0; i<HEIGHT; i++)
 		for(int j=0; j<WIDTH; j++){
-				if(wall[k].y == i && wall[k].x == j) kow[i][j]=2;
-				else kow[i][j]=0;
+				if(kow[i][j]==2){
+						attrset(COLOR_PAIR(5));
+						printObj(j,i,'w');
+				}
+		}
+}
+
+void printPlayer(struct player *pl){
+		for(int k=0; k<4; k++){
+				if(pl[k].is_alive == 1){
+						player_id=pl[k].id;
+						printObj(pl[k].x, pl[k].y, 'p');
+				}
 		}
 }
 
@@ -43,25 +64,24 @@ void init(){
 		start_color();
 		curs_set(0);
 
-		setWall();
-
 		init_pair(1,COLOR_BLACK,COLOR_YELLOW);
 		init_pair(2,COLOR_BLACK,COLOR_CYAN);
 		init_pair(3,COLOR_RED,COLOR_BLACK);
 		init_pair(4,COLOR_BLACK,COLOR_RED);
 		init_pair(5,COLOR_BLACK,COLOR_GREEN);
+		//init_pair(6,COLOR_BLACK,COLOR_GREEN);
 }
 
 /* 絶対座標に変換(フィールド左上が(0,0)) */
 int toSpos(int p, char axis){
-		if(axis=='x')return p-(offsetX/2);
-		else return p-(offsetY/2);
+		if(axis=='x')return (p-offsetX)/4;
+		else return (p-offsetY)/2;
 }
 
 /* 描画用座標に変換 */
 int toGpos(int p, char axis){
-		if(axis=='x')return p*4;
-		else return p*2;
+		if(axis=='x')return p*4+offsetX;
+		else return p*2+offsetY;
 }
 
 /* フィールドを描画，kowに破壊不可のブロック座標を追加 */
@@ -97,13 +117,13 @@ void printObj(int ax, int ay, char a){
 		switch(a){
 				case 'p':
 					attrset(COLOR_PAIR(2));
-					if(pl.id==0){
+					if(player_id==0){
 							mvprintw(ay_g, ax_g, "(^^)");
 							mvprintw(ay_g+1, ax_g, "/||\\");
-					}else if(pl.id==1){
+					}else if(player_id==1){
 							mvprintw(ay_g, ax_g, "OOOO");
 							mvprintw(ay_g+1, ax_g, "OOOO");
-					}else if(pl.id==2){
+					}else if(player_id==2){
 							mvprintw(ay_g, ax_g, "OOOO");
 							mvprintw(ay_g+1, ax_g, "OOOO");
 					}else{
@@ -137,15 +157,6 @@ void printObj(int ax, int ay, char a){
 					break;
 				default:
 					break;
-		}
-}
-
-void printWall(){
-		attrset(COLOR_PAIR(5));
-		for(int i=0; i<HEIGHT; i++){
-				for(int j=0; j<WIDTH; j++){
-						if(kow[i][j]==2)printObj(j,i,'w');
-				}
 		}
 }
 
@@ -216,18 +227,6 @@ int keyInput(char c){
 		return 0;
 }
 
-int to_Gpos(int Spos){
-		int re=Spos*2;
-		if(re>=WIDTH || re>=HEIGHT)return -1;
-		return re;
-}
-
-void bomb(int bx, int by){
-}
-
-void setBombPos(){
-}
-
 void refreshAll(int ti){
 		int ef;
 		char c=(char)getch();
@@ -244,12 +243,18 @@ void refreshAll(int ti){
 void new_main(struct metadata *me, struct bomb *bo, 
 							struct player *pl, struct wall *wa){
 		// bo[me->bomb_cnt-1].x
-
 		init();
-		clear();
+		//clear();
 		printFrame();
-}
+		printWall(me->wall_cnt, wa);
 
+		printPlayer(pl);
+		while(1){
+				if((char)getch()=='q')break;
+		}
+		endwin();
+}
+/*
 int main(){
 		init();
 
@@ -257,7 +262,7 @@ int main(){
 		timer_t tick_tm;
 		struct itimerspec tick_spec;
 		sigset_t alrm;
-		/* tick timer */
+
 		tick_ev.sigev_notify = SIGEV_SIGNAL;
 		tick_ev.sigev_signo = SIGALRM;
 		timer_create(CLOCK_REALTIME, &tick_ev, %tick_tm);
@@ -272,12 +277,8 @@ int main(){
 				pause();
 				if(end_flag==1)break;
 		}
-		/*
-		while(1){
-				if(refreshAll()==1)break;
-		}
-		*/
 		tiemr_delete(alrm);
 		endwin();
 		return 0;
 }
+*/

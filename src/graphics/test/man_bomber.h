@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#include "list.h"
+//#include "list.h"
 
 /* magic values with no particular meaning */
 #define PLA 0x18fabe0d
@@ -61,7 +61,7 @@ struct metadata {
 
 struct bomb {
 	/* Linked list node */
-	struct list_node node;
+	//struct list_node node;
 
 	int id;
 	int x;
@@ -81,7 +81,7 @@ struct bomb {
 
 struct player {
 	/* Linked list node */
-	struct list_node node;
+	//struct list_node node;
 
 	/* Same id as in struct metadata */
 	int id;
@@ -93,7 +93,7 @@ struct player {
 /* Destructable wall */
 struct wall {
 	/* Linked list node */
-	struct list_node node;
+	//struct list_node node;
 
 	int x;
 	int y;
@@ -104,7 +104,7 @@ struct wall {
 
 struct generic {
 	/* Linked list node */
-	struct list_node node;
+	//struct list_node node;
 };
 
 int check_magic(int fd, int magic);

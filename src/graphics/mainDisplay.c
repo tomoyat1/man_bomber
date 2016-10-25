@@ -16,7 +16,6 @@
 #define FPS 15625  // sleep time in micro sec
 
 
-int end_flag=0;
 int x=(offsetX/2)+xx, y=(offsetY/2)+yy; 
 int bt = 0; // 起爆カウント
 bool bomb_on = false;
@@ -28,13 +27,19 @@ int kow[HEIGHT][WIDTH];
 	 4 爆弾
 */
 
-/* 破壊可能な壁をkowに登録 */
-void setWall(){
+/* 破壊可能な壁をkowに登録・描画 */
+void printWall(){
 		for(int k=0; k < me->wall_cnt; k++) 
 		for(int i=0; i<HEIGHT; i++)
 		for(int j=0; j<WIDTH; j++){
 				if(wall[k].y == i && wall[k].x == j) kow[i][j]=2;
 				else kow[i][j]=0;
+		}
+		attrset(COLOR_PAIR(5));
+		for(int i=0; i<HEIGHT; i++){
+				for(int j=0; j<WIDTH; j++){
+						if(kow[i][j]==2)printObj(j,i,'w');
+				}
 		}
 }
 
@@ -142,15 +147,6 @@ void printObj(int ax, int ay, char a){
 		}
 }
 
-void printWall(){
-		attrset(COLOR_PAIR(5));
-		for(int i=0; i<HEIGHT; i++){
-				for(int j=0; j<WIDTH; j++){
-						if(kow[i][j]==2)printObj(j,i,'w');
-				}
-		}
-}
-
 void bomb_anime(int bbx, int bby){
 		mvprintw(2,2,"%d",bt);
 		static int bx, by;
@@ -218,18 +214,6 @@ int keyInput(char c){
 		return 0;
 }
 
-int to_Gpos(int Spos){
-		int re=Spos*2;
-		if(re>=WIDTH || re>=HEIGHT)return -1;
-		return re;
-}
-
-void bomb(int bx, int by){
-}
-
-void setBombPos(){
-}
-
 void refreshAll(int ti){
 		int ef;
 		char c=(char)getch();
@@ -248,8 +232,13 @@ void new_main(struct metadata *me, struct bomb *bo,
 		// bo[me->bomb_cnt-1].x
 
 		init();
-		clear();
+		//clear();
 		printFrame();
+		//mvprintw(3,3,"%d",pl->id);
+		while(1){
+				if((char)getch()=='q')break;
+		}
+		endwin();
 }
 
 int main(){
