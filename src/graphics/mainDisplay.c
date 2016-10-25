@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <signal.h>
+#include <sys/types.h>
 //#include "man_bomber.h"
 
 #define WIDTH 21
@@ -69,7 +70,7 @@ void printFrame(){
 						//kow[i/2][j/4] = 1;
 				}else if(j%8>3 && i%4>1){  // 中のブロック
 						mvaddch(offsetY+i, offsetX+j, 'X');
-						//kow[i/2][j/4] = 1;
+						kow[i/2][j/4] = 1;
 				}
 		}
 }
@@ -143,16 +144,16 @@ void bomb_anime(int bbx, int bby){
 				attrset(COLOR_PAIR(3));
 				printObj(bx,by,'b');
 				for(int i=1; i<=3; i++){
-						//if(kow[by][bx+i] == 0) printObj(bx+i, by, 'r');
+						printObj(bx+i, by, 'r');
 				}
 				for(int i=1; i<=3; i++){
-						//if(kow[by][bx-i] == 0) printObj(bx-i, by, 'l');
+						printObj(bx-i, by, 'l');
 				}
 				for(int i=1; i<=3; i++){
-						//if(kow[by+i][bx] == 0) printObj(bx, by+i, 'd');
+						printObj(bx, by+i, 'd');
 				}
 				for(int i=1; i<=3; i++){
-						//if(kow[by-i][bx] == 0) printObj(bx, by-i, 'u');
+						printObj(bx, by-i, 'u');
 				}
 				bt++;
 		}else if(bt<32 || (64<=bt && bt<96)){
@@ -190,10 +191,11 @@ int keyInput(char c){
 					//if(kow[y][x+1] != 0) return 0;
 					x+=1;
 					break;
-				case 'j':
+				case ' ':
 					return 3;
 				case 'q':
-					return 1;
+					end_flag = 1;
+					return 0;
 		}
 		printObj(x,y,'p');
 		return 0;
@@ -211,7 +213,7 @@ void bomb(int bx, int by){
 void setBombPos(){
 }
 
-int refreshAll(){
+void refreshAll(int ti){
 		int ef;
 		char c=(char)getch();
 		clear();  // clear all
@@ -222,15 +224,36 @@ int refreshAll(){
 		if(bomb_on==true)bomb_anime(x,y);
 
 		usleep(FPS);
-		if(ef==1)return 1;
-		return 0;
 }
 
 int main(){
 		init();
+
+		struct sigevent tick_ev;
+		timer_t tick_tm;
+		struct itimerspec tick_spec;
+		sigset_t alrm;
+		/* tick timer */
+		tick_ev.sigev_notify = SIGEV_SIGNAL;
+		tick_ev.sigev_signo = SIGALRM;
+		timer_create(CLOCK_REALTIME, &tick_ev, %tick_tm);
+		tick_spec.it_interval.tv_sec = 0;
+		tick_spec.it_interval.tv_nsec = 15625000;
+		tick_spec.it_value.tv_sec = 1;
+		tick_spec.it_value.tv_nsec = 0;
+		timer_settime(tick_tm, 0, &tick_spec, &tick_spec); 
+
+		signal(SIGALRM, refreshAll);
+		while(1){
+				pause();
+				if(end_flag==1)break;
+		}
+		/*
 		while(1){
 				if(refreshAll()==1)break;
 		}
+		*/
+		tiemr_delete(alrm);
 		endwin();
 		return 0;
 }
