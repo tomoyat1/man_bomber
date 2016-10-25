@@ -24,20 +24,15 @@ int send_meta(int fd, struct metadata *data)
 	char *head = buf;
 	char errmsg[64];
 	len = 0;
-	while (len < sizeof(struct metadata)) {
-		send_len = recv(fd, head, (sizeof(buf) - len), 0);
+	send_len = send(fd, head, (sizeof(buf) - len), 0);
 		if (send_len < 0) {
-			snprintf(errmsg,
-				64,
-				"(Slave: %d) Metadata send error",
-				getpid());
+			snprintf(errmsg, 64, "(Slave: %d)Metadata send error",getpid());
 			perror("metadata");
 			goto exit;
 		}
-		len += send_len;
-		head += send_len;
+	len += send_len;
+	head += send_len;
 	}
-	memcpy(data, buf, sizeof(struct metadata));
 exit:
 	return len;
 }
@@ -59,17 +54,15 @@ int send_bomb(int fd, struct bomb *data, int count)
 	len = 0;
 	if (!check_magic(fd, BOM))
 		return -1;
-	while (len < CNT_TO_SIZE(struct bomb, count)) {
-		send_len = recv(fd, buf, CNT_TO_SIZE(struct bomb, count) - len, 0);
+	send_len = recv(fd, buf, CNT_TO_SIZE(struct bomb, count) - len, 0);
 		if (send_len < 0) {
 			snprintf(errmsg, 64, "(Slave: %d) Bomb send error", getpid());
 			perror("metadata");
 			len = send_len;
 			goto exit;
 		}
-		memcpy(head, buf, send_len);
-		len += send_len;
-		head += send_len;
+	len += send_len;
+	head += send_len;
 	}
 exit:
 	return len;
@@ -92,23 +85,16 @@ int send_player(int fd, struct player *data, int count)
 	len = 0;
 	if (!check_magic(fd, PLA))
 		return -1;
-	while (len < CNT_TO_SIZE(struct player, count)) {
-		send_len = send(fd,
-			buf,
-			CNT_TO_SIZE(struct player, count) - len,
-			0);
+
+	send_len = send(fd, buf, CNT_TO_SIZE(struct player, count) - len, 0);
 		if (send_len < 0) {
-			snprintf(errmsg,
-				64,
-				"(Slave: %d) Player send error",
-				getpid());
+			snprintf(errmsg,64,"(Slave: %d) Player send error",getpid());
 			perror("metadata");
 			len = send_len;
 			goto exit;
 		}
-		memcpy(head, buf, send_len);
-		len += send_len;
-		head += send_len;
+	len += send_len;
+	head += send_len;
 	}
 exit:
 	return len;
@@ -131,23 +117,15 @@ int send_wall(int fd, struct wall *data, int count)
 	len = 0;
 	if (!check_magic(fd, WAL))
 		return -1;
-	while (len < CNT_TO_SIZE(struct wall, count)) {
-		send_len = send(fd,
-			buf,
-			CNT_TO_SIZE(struct wall, count) - len,
-			0);
+	send_len = send(fd, buf, CNT_TO_SIZE(struct wall, count) - len, 0);
 		if (send_len < 0) {
-			snprintf(errmsg,
-				64,
-				"(Slave: %d) Wall send error",
-				getpid());
+			snprintf(errmsg,64,"(Slave: %d) Wall send error",getpid());
 			perror("wall");
 			len = send_len;
 			goto exit;
 		}
-		memcpy(head, buf, send_len);
-		len += send_len;
-		head += send_len;
+	len += send_len;
+	head += send_len;
 	}
 exit:
 	return len;
