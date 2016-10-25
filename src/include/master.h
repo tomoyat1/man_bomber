@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 #include "list.h"
+#include "man_bomber.h"
 
 #define FUSE 128
 #define EXPLOSION_LEN 32
@@ -21,10 +22,16 @@ struct srv_state {
 	long int tick;
 };
 
+struct bomb_ptr {
+	struct list_node node;
+	struct bomb *bptr;
+};
+
 static int domain_sock;
 static int inet_sock;
 static int slaves[4];
 static int slave_socks[4];
+static int slave_wait_state[4];
 
 static struct player players[4];
 static struct list_node *bombs;

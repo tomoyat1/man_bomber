@@ -16,64 +16,108 @@
 
 #include "man_bomber.h"
 #include "master.h"
+#include "srv.h"
 
-void bomb_clean(struct list_node **hot);
-void bomb_countdown(struct list_node **list);
-void bomb_kaboom(struct list_node **list);
+void bomb_clean(struct list_node **gone, struct list_node **hot);
+void bomb_countdown(struct list_node **hot, struct list_node **burning, struct list_node **gone);
+void bomb_kaboom(struct list_node **burning, struct list_node **hot);
 void bomb_prime(struct list_node **queue, struct list_node **hot);
 int bomb_equals_node_by_coords(struct bomb *b, struct list_node *n);
 void clear_list(struct list_node **head);
 void connect_to_slave(int i);
+int count_players();
 void handle_tick(int signal);
 void init_game_server();
-int recv_magic(int fd);
-int recv_single_bomb(int fd, struct bomb *buf, int *id);
-int recv_single_player(int fd, struct player *buf, int *id);
+int send_state_to_slave(int fd,
+    int id,
+    struct player *pl,
+    struct bomb *bo,
+    int bo_cnt,
+    struct wall *wa,
+    int wa_cnt);
 struct bomb * search_bomb_by_coords(struct bomb *entry, struct list_node *head);
 void update_bombs();
 void update_players();
 
-void bomb_clean(struct list_node **hot)
+void bomb_clean(struct list_node **gone, struct list_node **hot)
 {
+	struct list_node *cur, *tmp;
+	struct bomb *b;
+	struct bomb_ptr *ptr;
+
+	/* Remove bombs one second after detonation */
+	cur = *gone;
+	while (cur) {
+		tmp = cur->next;
+		printf("cur = %p\n", cur);
+		printf("cur->next = %p\n", cur->next);
+		ptr = list_entry(struct bomb_ptr, cur, node);
+		b = ptr->bptr;
+		list_remove(&b->node, hot);
+		printf("free: %p\n", b);
+		free(b);
+		list_remove(cur, gone);
+		free(ptr);
+		cur = tmp;
+	}
+}
+
+void bomb_countdown(struct list_node **hot, struct list_node **burning, struct list_node **gone)
+{
+#define IS_BOOM(p) \
+	(p->timer >= -EXPLOSION_LEN && p->timer <= 0)
 #define IS_GONE(p) \
 	p->timer < -(EXPLOSION_LEN + 32)
 
-	struct list_node *cur, *tmp;
+	struct list_node *cur;
 	struct bomb *b;
+	struct bomb_ptr *ptr;
 
-	/* Remove bombs one second after detonation */
+	int i;
+
+	/* Loop on game bombs list */
 	cur = *hot;
+	i = 0;
 	while (cur) {
-		printf("cur = %p\n", cur);
-		printf("cur->next = %p\n", cur->next);
-		b = list_entry(struct bomb, cur, node);
-		tmp = cur->next;
-		if (IS_GONE(b)) {
-			list_remove(cur, hot);
-			printf("free: %p\n", b);
-			free(b);
+		(b = list_entry(struct bomb, cur, node))->timer--;
+		i++;
+		printf("ticking bomb %d: timer = %d\n", i, b->timer);
+		printf("%d\n", b->timer);
+		if (IS_BOOM(b)) {
+			ptr = (struct bomb_ptr *)malloc(sizeof(struct bomb_ptr));
+			ptr->bptr = b;
+			/* add to burning */
+			list_add(&ptr->node, burning);
+
+		} else if (IS_GONE(b)) {
+			ptr = (struct bomb_ptr *)malloc(sizeof(struct bomb_ptr));
+			ptr->bptr = b;
+			/* add to gone */
+			list_add(&ptr->node, gone);
 		}
-		cur = tmp;
+		cur = cur->next;
 	}
 #undef IS_GONE
 }
 
-void bomb_countdown(struct list_node **hot)
+void bomb_kaboom(struct list_node **burning, struct list_node **hot)
 {
-	struct list_node *cur;
+	struct list_node *cur, *tmp;;
 	struct bomb *b;
+	struct bomb_ptr *ptr;
 
-	/* Loop on game bombs list */
-	cur = *hot;
-	while (cur) {
-		list_entry(struct bomb, cur, node)->timer--;
-		cur = cur->next;
-	}
-}
-
-void bomb_kaboom(struct list_node **list)
-{
 	/* Hit detection for bombs upto 0.5s from detonation */
+	cur = *burning;
+	while (cur) {
+		printf("kaboom\n");
+		tmp = cur->next;
+		ptr = list_entry(struct bomb_ptr, cur, node);
+		b = ptr->bptr;
+		/* Heavy-lifting of hit detection */
+		list_remove(cur, burning);
+		free(ptr);
+		cur = tmp;
+	}
 }
 
 void bomb_prime(struct list_node **queue, struct list_node **hot)
@@ -83,8 +127,7 @@ void bomb_prime(struct list_node **queue, struct list_node **hot)
 	/* Loop on update queue */
 	cur = *queue;
 	while (cur) {
-		if (!search_bomb_by_coords(list_entry(
-		    struct bomb, cur, node),
+		if (!search_bomb_by_coords(list_entry(struct bomb, cur, node),
 		    bombs)) {
 			if (b = (struct bomb *)malloc(sizeof(struct bomb))) {
 				list_add(&(b->node), hot);
@@ -99,8 +142,9 @@ void bomb_prime(struct list_node **queue, struct list_node **hot)
 
 int bomb_equals_node_by_coords(struct bomb *b, struct list_node *n)
 {
-	int truth = 0;
+	int truth = 1;
 	truth &= (list_entry(struct bomb, n, node)->x == b->x);
+	truth &= (list_entry(struct bomb, n, node)->y == b->y);
 	return truth;
 }
 
@@ -133,12 +177,45 @@ void connect_to_slave(int i) {
 	/* foo */
 }
 
+int count_players()
+{
+	int i;
+	int cnt;
+	cnt = 0;
+	for (i = 0; i < 4; i++) {
+		if (players[i].id >= 0)
+			cnt++;
+	}
+	return cnt;
+}
+
 void handle_tick(int signal)
 {
+	int i;
+	int bomb_cnt;
+	int player_cnt;
+	int wall_cnt;
 	state.tick++;
 	printf("TICK!: %ld\n", state.tick);
 	update_players();
 	update_bombs();
+
+	player_cnt = count_players();
+	bomb_cnt = list_count(&bombs);
+	wall_cnt = list_count(&walls);
+
+	for (i = 0; i < 4; i++) {
+		if (slave_wait_state[i]) {
+			send_state_to_slave(slave_socks[i],
+			    i,
+			    players,
+			    list_entry(struct bomb, bombs, node),
+			    bomb_cnt,
+			    list_entry(struct wall, walls, node),
+			    wall_cnt);
+			slave_wait_state[i] = 0;
+		}
+	}
 
 	clear_list(&b_wait);
 	clear_list(&w_wait);
@@ -251,8 +328,8 @@ int master_loop(char *addr_str, int port)
 	timer_create(CLOCK_REALTIME, &tick_ev, &tick_tm);
 	tick_spec.it_interval.tv_sec = 0;
 	tick_spec.it_interval.tv_nsec = 15625000;
-	tick_spec.it_value.tv_sec = 1;
-	tick_spec.it_value.tv_nsec = 0;
+	tick_spec.it_value.tv_sec = 0;
+	tick_spec.it_value.tv_nsec = 15625000;;
 	timer_settime(tick_tm, 0, &tick_spec, &tick_spec);
 
 	while (1) {
@@ -298,12 +375,14 @@ int master_loop(char *addr_str, int port)
 			}
 			close(client_sock);
 		}
+		memset(slave_wait_state, 0, 4);
 		for (i = 0; i < 4; i++) {
 			int rlen;
 			if (FD_ISSET(slave_socks[i], &rset)) {
 				/* recv state from slave */
 				/* queue state change */
 				sigemptyset(&alrm);
+				slave_wait_state[i] = 1;
 				sigaddset(&alrm, SIGALRM);
 				sigprocmask(SIG_BLOCK, &alrm, NULL);
 				switch(recv_magic(slave_socks[i])) {
@@ -323,6 +402,8 @@ int master_loop(char *addr_str, int port)
 					INIT_LIST_HEAD(&b->node);
 					if (!search_bomb_by_coords(b, b_wait))
 						list_add(&(b->node), &b_wait);
+					else
+						fprintf(stderr,"dup bomb\n");
 					break;
 				case END:
 					recv(slave_socks[i], &id, sizeof(int), 0);
@@ -348,84 +429,6 @@ struct player * player_in_state(int id)
 	}
 }
 
-
-int recv_magic(int fd)
-{
-	int magic;
-	int rlen;
-	rlen = recv(fd, &magic, sizeof(int), 0);
-	switch (magic) {
-		case PLA:
-			/* Fall-through */
-		case BOM:
-			/* Fall-through */
-		case WAL:
-			/* Fall-through */
-		case END:
-			return magic;
-			break;
-		default:
-			fprintf(stderr, "(Master) Not magic: %x\n", magic);
-			return -1;
-	}
-}
-
-int recv_single_bomb(int fd, struct bomb *buf, int *id)
-{
-	int recv_len;
-	int len = 0;
-	int total_len = 0;
-	char *head;
-	head = (char *)id;
-	while (len < sizeof(int)) {
-		if ((recv_len = recv(fd, head, sizeof(int) - len, 0)) == -1)
-			return -1;
-		len += recv_len;
-		head += recv_len;
-	}
-	total_len += len;
-
-	head = (char *)buf;
-	len = 0;
-	while (len < sizeof(struct bomb)) {
-		if ((recv_len = recv(fd, head, sizeof(struct bomb) - len, 0)) == -1)
-			return -1;
-		len += recv_len;
-		head += recv_len;
-	}
-	total_len += len;
-
-	return total_len;
-}
-
-int recv_single_player(int fd, struct player *buf, int *id)
-{
-	int recv_len;
-	int len = 0;
-	int total_len = 0;
-	char *head;
-	head = (char *)id;
-	while (len < sizeof(int)) {
-		if ((recv_len = recv(fd, head, sizeof(int) - len, 0)) == -1)
-			return -1;
-		len += recv_len;
-		head += recv_len;
-	}
-	total_len += len;
-
-	head = (char *)buf;
-	len = 0;
-	while (len < sizeof(struct player)) {
-		if ((recv_len = recv(fd, head, sizeof(struct player) - len, 0)) == -1)
-			return -1;
-		len += recv_len;
-		head += recv_len;
-	}
-	total_len += len;
-
-	return total_len;
-}
-
 /* Search for entry in bomb list whose coordinates match entry */
 struct bomb * search_bomb_by_coords(struct bomb *entry, struct list_node *head)
 {
@@ -440,20 +443,64 @@ struct bomb * search_bomb_by_coords(struct bomb *entry, struct list_node *head)
 		return list_entry(struct bomb, cur, node);
 }
 
+int send_state_to_slave(int fd,
+    int id,
+    struct player *pl,
+    struct bomb *bo,
+    int bo_cnt,
+    struct wall *wa,
+    int wa_cnt)
+{
+	int i;
+	struct list_node *cur;
+	struct metadata data;
+	data.id = id;
+	data.player_cnt = 4;
+	data.bomb_cnt = bo_cnt;
+	data.wall_cnt = wa_cnt;
+	send(fd, &data, sizeof(struct metadata), 0);
+
+	/* Needs error handling */
+	for (i = 0; i < 4; i++)
+		send_single_player(fd, &pl[i], id);
+	cur = &bo->node;
+	while (cur) {
+		printf("Sending bomb\n");
+		send_single_bomb(fd, list_entry(struct bomb, cur, node), id);
+		cur = cur->next;
+	}
+	cur = &wa->node;
+	while (cur) {
+		send_single_wall(fd, list_entry(struct wall, cur, node), id);
+		cur = cur->next;
+	}
+	send_end(fd, id);
+}
+
 void update_bombs()
 {
-	int foo[10];
+	struct bomb *foo[10];
+	struct list_node *burning = NULL;
+	struct list_node *gone = NULL;
 
-	bomb_countdown(&bombs);
+	bomb_countdown(&bombs, &burning, &gone);
+	/* fizz... */
 	bomb_prime(&b_wait, &bombs);
-	bomb_kaboom(&bombs);
-	bomb_clean(&bombs);
+	/* KABOOM BABY!! ...well actually, called for every tick a bomb is burning */
+	bomb_kaboom(&burning, &bombs);
+	bomb_clean(&gone, &bombs);
+	/*
 	if (bombs) {
-		foo[0] = list_entry(struct bomb, bombs, node)->timer;
-		foo[1] = list_entry(struct bomb, bombs->next, node)->timer;
-		printf("ticks for bomb[0]: %d\n", foo[0]);
-		printf("ticks for bomb[0]: %d\n", foo[1]);
+		foo[0] = list_entry(struct bomb, bombs, node);
+		foo[1] = list_entry(struct bomb, foo[0]->node.next, node);
+		foo[2] = list_entry(struct bomb, foo[1]->node.next, node);
+		//foo[3] = list_entry(struct bomb, foo[2]->node.next, node);
+		printf("ticks for bomb[0]: %d\n", foo[0]->timer);
+		printf("ticks for bomb[1]: %d\n", foo[1]->timer);
+		//printf("ticks for bomb[2]: %d\n", foo[2]->timer);
+		//printf("ticks for bomb[3]: %d\n", foo[3]->timer);
 	}
+	*/
 }
 
 void update_players()

@@ -13,16 +13,18 @@
 #include "man_bomber.h"
 #include "man_bomber_config.h"
 
-#include "slave.h"
+#include "list.h"
 #include "recv-data.h"
+#include "slave.h"
+#include "srv.h"
 
 int init_slave(int i);
+int recv_state_from_master(int fd,
+    struct metadata *data,
+    struct player p[4],
+    struct bomb **b,
+    struct wall **w);
 int slave_loop();
-int send_end(int fd, long int id);
-int send_single_bomb(int fd, struct bomb *b, int id);
-int send_single_player(int fd, struct player *p, int id);
-int send_state_to_master(int fd, int id, struct player *pl, struct bomb *bo, int bo_cnt);
-
 
 int init_slave(int i)
 {
@@ -40,35 +42,95 @@ int init_slave(int i)
 	slave_loop();
 }
 
-int send_end(int fd, long int id)
+/* Give pointer to pointer that will point to buf, which is allocated by this function. */
+int recv_state_from_master(int fd,
+    struct metadata *data,
+    struct player *p,
+    struct bomb **b,
+    struct wall **w)
 {
-	int end = END;
-	if (send(fd, &end, sizeof(end), 0) == -1)
-		return -1;
-	if (send(fd, &id, sizeof(int), 0) == -1)
-		return -1;
-}
+	int i;
+	int rlen;
+	int len;
+	int id;
+	struct player *pptr;
+	struct bomb *cur_b;
+	struct wall *cur_w;
 
-int send_single_bomb(int fd, struct bomb *b, int id)
-{
-	int  bom = BOM;
-	if (send(fd, &bom, sizeof(int), 0) == -1)
-		return -1;
-	if (send(fd, &id, sizeof(int), 0) == -1)
-		return -1;
-	if (send(fd, b, sizeof(struct bomb), 0) == -1)
-		return -1;
-}
-int send_single_player(int fd, struct player *p, int id)
-{
-	int pla = PLA;
-	if (send(fd, &pla, sizeof(int), 0) == -1)
-		return -1;
-	if (send(fd, &id, sizeof(int), 0) == -1)
-		return -1;
-	if (send(fd, p, sizeof(struct player), 0) == -1)
-		return -1;
-	return 0;
+	char buf[1024];
+
+	recv_meta(fd, data);
+
+	if (data->id < 0 || data->id >= 4) {
+		fprintf(stderr, "invalid id");
+		//abort();
+	}
+
+	*b = (struct bomb *)malloc(sizeof(struct bomb) * data->bomb_cnt);
+	*w = (struct wall *)malloc(sizeof(struct wall) * data->wall_cnt);
+	cur_b = *b;
+	cur_w = *w;
+	len = data->player_cnt * (sizeof(struct player) + sizeof(int))
+	    + data->bomb_cnt * (sizeof(struct bomb) + sizeof(int))
+	    + data->wall_cnt * (sizeof(struct wall) + sizeof(int))
+	    + sizeof(int) /* end id */
+	    + sizeof(int) * (1 + data->player_cnt + data->bomb_cnt + data->wall_cnt);
+	fprintf(stderr, "player_cnt = %d\n", data->player_cnt);
+	fprintf(stderr, "bomb_cnt = %d\n", data->bomb_cnt);
+	fprintf(stderr, "wall_cnt = %x\n", data->wall_cnt);
+	fprintf(stderr, "len = %d\n", len);
+
+
+	for (i = 0; i < 4; i++)
+		p[i].id = -1;
+	while (len > 0) {
+		switch(recv_magic(master_sock)) {
+			case PLA:
+				pptr = (struct player *)malloc(sizeof(struct player));
+				rlen = recv_single_player(master_sock, pptr, &id);
+				if (rlen == -1)
+					perror("recv_single_player");
+				if (rlen != sizeof(struct player) + sizeof(int))
+					fprintf(stderr, "struct player size not match\n");
+				if (pptr-> id < 0 || pptr->id > 3) {
+					fprintf(stderr, "(Slave %d) FATAL ERROR: INVALID PLAYER ID\n", getpid());
+					return -1;
+				}
+				p[pptr->id] = *pptr;
+				free(pptr);
+				len -= rlen;
+				break;
+			case BOM:
+				rlen = recv_single_bomb(master_sock, cur_b, &id);
+				if (rlen == -1)
+					perror("recv_single_bomb");
+				if (rlen != sizeof(struct bomb) + sizeof(int))
+					fprintf(stderr, "struct bomb size not match\n");
+				cur_b++;
+				len -= rlen;
+				break;
+			case WAL:
+				rlen = recv_single_wall(master_sock, cur_w, &id);
+				if (rlen == -1)
+					perror("recv_single_wall");
+				if (rlen != sizeof(struct wall) + sizeof(int))
+					fprintf(stderr, "struct wall size not match\n");
+				cur_w++;
+				len -= rlen;
+				break;
+			case END:
+				rlen = recv(master_sock, &id, sizeof(int), 0);
+				if (rlen != sizeof(int))
+					fprintf(stderr, "end size not match\n");
+				len -= rlen;
+				break;
+			default:
+				fprintf(stderr, "not magic\n");
+				return -1;
+		}
+		/* Magic bytes */
+		len -= 4;
+	}
 }
 
 int send_state_to_master(int fd, int id, struct player *pl, struct bomb *bo, int bo_cnt)
@@ -84,8 +146,7 @@ int send_state_to_master(int fd, int id, struct player *pl, struct bomb *bo, int
 int slave_loop()
 {
 	char buf[512];
-	int recv_len;
-	int msg_len = 0;
+	int recv_len; int msg_len = 0;
 	int client_sock;
 
 	struct sockaddr_in fromaddr;
@@ -97,17 +158,20 @@ int slave_loop()
 	} u;
 	struct iovec iov[1];
 
-	struct metadata cm;
+	struct metadata mc;
+	struct metadata ms;
 	/* Hard-coded to max players */
-	struct player pl[1];
-	struct bomb *bo;
-	struct wall *wa;
+	struct player pc[1];
+	struct player ps[4];
+	struct bomb *bc;
+	struct bomb *bs;
+	struct wall *wc;
+	struct wall *ws;
 
 	printf("Slave loop\n");
 	while (1) {
 		memset(buf, 0, sizeof(buf));
-		memset(&msg, 0, sizeof(msg));
-		msg.msg_control = u.buf;
+		memset(&msg, 0, sizeof(msg)); msg.msg_control = u.buf;
 		msg.msg_controllen = sizeof(u.buf);
 		iov[0].iov_base = &fromaddr;
 		iov[0].iov_len = sizeof(fromaddr);
@@ -128,41 +192,43 @@ int slave_loop()
 		else
 			send(client_sock, "???\n", 5, 0);
 #else
-		if ((recv_len = recv_meta(client_sock, &cm)) == -1)
+		if ((recv_len = recv_meta(client_sock, &mc)) == -1)
 			goto end_loop;
 		else
 			msg_len += recv_len;
 
 		if ((recv_len = recv_player(client_sock,
-		    pl,
+		    pc,
 		    1)) == -1)
 			goto end_loop;
 		else
 			msg_len += recv_len;
 
-		if (!(bo = (struct bomb *)malloc(sizeof(struct bomb)
-		    * cm.bomb_cnt))) {
+		if (!(bc = (struct bomb *)malloc(sizeof(struct bomb)
+		    * mc.bomb_cnt))) {
 			fprintf(stderr, "(Slave: %d) out of memory\n", getpid());
 			goto end_loop;
 		}
 		if ((recv_len = recv_bomb(client_sock,
-		    bo,
-		    cm.bomb_cnt)) == -1)
-			goto free_bo;
+		    bc,
+		    mc.bomb_cnt)) == -1)
+			goto free_bc;
 		else
 			msg_len += recv_len;
 
 		/* Send state to master */
-		send_state_to_master(master_sock, cm.id, pl, bo, cm.bomb_cnt);
-
+		send_state_to_master(master_sock, mc.id, pc, bc, mc.bomb_cnt);
 		/* Wait for next tick i.e. wait until packet arrives on domain socket. */
-
+		if (recv_state_from_master(master_sock, &ms, ps, &bs, &ws) == -1)
+			fprintf(stderr, "(Slave %d) recv_state_from_master failed\n", getpid());
+		else
+			fprintf(stderr, "recved state from master\n");
 		/* Send state to client and close */
 
 #endif /* ENABLE_HOGE_FUGA */
 
-free_bo:
-		free(bo);
+free_bc:
+		free(bc);
 end_loop:
 		close(client_sock);
 	}
