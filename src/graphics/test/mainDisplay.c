@@ -3,9 +3,7 @@
 #include <time.h>
 #include <signal.h>
 #include <sys/types.h>
-
 #include "man_bomber.h"
-#include "mainDisplay.h"
 
 #define WIDTH 21
 #define HEIGHT 13
