@@ -20,26 +20,21 @@
 int send_meta(int fd, struct metadata *data)
 {
 	size_t send_len, len;
-	char buf[sizeof(struct metadata)];
-	char *head = buf;
 	char errmsg[64];
-	len = 0;
-	send_len = send(fd, head, (sizeof(buf) - len), 0);
+	send_len = send(fd, data, sizeof(struct metadata), 0);
 		if (send_len < 0) {
 			snprintf(errmsg, 64, "(Slave: %d)Metadata send error",getpid());
 			perror("metadata");
 			len = send_len;
 			goto exit;
 		}
-	len += send_len;
-	head += send_len;
 exit:
-	return len;
+	return send_len;
 }
 
 /*
 * int send_bomb(int fd, struct player *data, size_t size);
-* int fd: File descriptor for socket to recv from
+* int fd: File descriptor for socket to send to
 * struct bomb *data: Buffer to write received data.
 * int count: Number of struct bomb to receive.
 *
@@ -47,14 +42,17 @@ exit:
 */
 int send_bomb(int fd, struct bomb *data, int count)
 {
+	int bom;
 	size_t send_len, len;
-	char buf[512];
-	char *head = (char *)data;
 	char errmsg[64];
+
+	bom = BOM;
 	len = 0;
 	if (!check_magic(fd, BOM))
 		return -1;
-	send_len = recv(fd, buf, CNT_TO_SIZE(struct bomb, count) - len, 0);
+	send_len = send(fd, &bom, sizeof(int), 0);
+	len += send_len;
+	send_len = send(fd, data, CNT_TO_SIZE(struct bomb, count), 0);
 		if (send_len < 0) {
 			snprintf(errmsg, 64, "(Slave: %d) Bomb send error", getpid());
 			perror("metadata");
@@ -62,14 +60,13 @@ int send_bomb(int fd, struct bomb *data, int count)
 			goto exit;
 		}
 	len += send_len;
-	head += send_len;
 exit:
 	return len;
 }
 
 /*
 * int send_player(int fd, struct player *data, size_t size);
-* int fd: File descriptor for socket to recv from
+* int fd: File descriptor for socket to send to
 * struct player *data: Buffer to write received data.
 * int count: Number of struct player to receive.
 *
@@ -77,15 +74,17 @@ exit:
 */
 int send_player(int fd, struct player *data, int count)
 {
+	int pla;
 	size_t send_len, len;
-	char buf[512];
-	char *head = (char *)data;
 	char errmsg[64];
+
+	pla = PLA;
 	len = 0;
 	if (!check_magic(fd, PLA))
 		return -1;
-
-	send_len = send(fd, buf, CNT_TO_SIZE(struct player, count) - len, 0);
+	send_len = send(fd, &pla, sizeof(int), 0);
+	len += send_len;
+	send_len = send(fd, data, CNT_TO_SIZE(struct player, count) - len, 0);
 		if (send_len < 0) {
 			snprintf(errmsg,64,"(Slave: %d) Player send error",getpid());
 			perror("metadata");
@@ -93,14 +92,13 @@ int send_player(int fd, struct player *data, int count)
 			goto exit;
 		}
 	len += send_len;
-	head += send_len;
 exit:
 	return len;
 }
 
 /*
 * int send_wall(int fd, struct wall *data, size_t size);
-* int fd: File descriptor for socket to recv from
+* int fd: File descriptor for socket to send to
 * struct wall *data: Buffer to write received data.
 * int count: Number of struct wall to receive.
 *
@@ -108,22 +106,22 @@ exit:
 */
 int send_wall(int fd, struct wall *data, int count)
 {
+	int wal;
 	size_t send_len, len;
-	char buf[512];
-	char *head = (char *)data;
 	char errmsg[64];
+
 	len = 0;
-	if (!check_magic(fd, WAL))
-		return -1;
-	send_len = send(fd, buf, CNT_TO_SIZE(struct wall, count) - len, 0);
+	wal = WAL;
+	send_len = send(fd, &wal, sizeof(int), 0);
+	len += send_len;
+	send_len = send(fd, data, CNT_TO_SIZE(struct wall, count) - len, 0);
 		if (send_len < 0) {
-			snprintf(errmsg,64,"(Slave: %d) Wall send error",getpid());
+			snprintf(errmsg,64,"(Slave: %d) Wall send error", getpid());
 			perror("wall");
 			len = send_len;
 			goto exit;
 		}
 	len += send_len;
-	head += send_len;
 exit:
 	return len;
 }
