@@ -28,6 +28,8 @@ void connect_to_slave(int i);
 int count_players();
 void handle_tick(int signal);
 void init_game_server();
+int is_crispy(struct player *pla, struct bomb *bom);
+void kill_player(struct player *p);
 int send_state_to_slave(int fd,
     int id,
     struct player *pl,
@@ -103,6 +105,7 @@ void bomb_countdown(struct list_node **hot, struct list_node **burning, struct l
 
 void bomb_kaboom(struct list_node **burning, struct list_node **hot)
 {
+	int i;
 	struct list_node *cur, *tmp;;
 	struct bomb *b;
 	struct bomb_ptr *ptr;
@@ -115,6 +118,10 @@ void bomb_kaboom(struct list_node **burning, struct list_node **hot)
 		ptr = list_entry(struct bomb_ptr, cur, node);
 		b = ptr->bptr;
 		/* Heavy-lifting of hit detection */
+		for (i = 0; i < 4; i++) {
+			if (is_crispy(&players[i], b))
+				kill_player(&players[i]);
+		}
 		list_remove(cur, burning);
 		free(ptr);
 		cur = tmp;
@@ -232,7 +239,11 @@ void init_game_server()
 	walls = NULL;
 	memset(players, 0, sizeof(players));
 	for (i = 0; i < 4; i++)
+		players[i].is_alive = 1;
+	/* For testing: will assign id to new clients upon connection in the future */
+	for (i = 0; i < 4; i++)
 		players[i].id = i;
+	/* Todo: Assign starting positions statically for players 0 to 3 in this init phase */
 
 	/* Initialize wait lists */
 	p_wait = NULL;
@@ -242,6 +253,23 @@ void init_game_server()
 	/* Initialize tick count */
 	state.tick = 0;
 }
+
+/* 爆弾のあたり判定 */
+int is_crispy(struct player *pla, struct bomb *bom)
+{
+	int i;
+	for (i = 1; i <= bom->aoe; i++){
+		if( bom->x==pla->x && (bom->y+i==pla->y || bom->y-i==pla->y) ) return 1;
+		if( bom->y==pla->y && (bom->x+i==pla->x || bom->x-i==pla->x) ) return 1;
+	}
+	return 0;
+}
+
+void kill_player(struct player *p)
+{
+	p->is_alive = 0;
+}
+
 
 /* TODO: Refactor */
 int master_loop(char *addr_str, int port)
@@ -522,15 +550,15 @@ void update_bombs()
 
 void update_players()
 {
+	int is_alive;
+	int search_id;
 	struct list_node *cur;
 	struct player *p;
 	cur = p_wait;
 	while (cur) {
-		if (p = player_in_state(list_entry(
-		    struct player,
-		    cur,
-		    node)->id))
-			is_alive = p->is_alive;
+		search_id = list_entry(struct player, cur, node)->id;
+		if (p = player_in_state(search_id))
+			is_alive = players[search_id].is_alive;
 			*p = *list_entry(struct player, cur, node);
 			p->is_alive = is_alive;
 			

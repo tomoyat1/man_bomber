@@ -14,7 +14,7 @@
 #include "man_bomber_config.h"
 #include "recv-data.h"
 
-int main(int argc, char **argv)
+int actual()
 {
 	int i;
 	int sock;
@@ -71,5 +71,13 @@ int main(int argc, char **argv)
 	recv_bomb(sock, bs, data.bomb_cnt);
 	recv_wall(sock, ws, data.wall_cnt);
 	printf("is_alive %d\n", ps[0].is_alive);
-	
+	return ps[0].is_alive;
+}
+
+int main(int argc, char **argv)
+{
+	int dead;
+	dead = actual();
+	sleep(3);
+	return actual();
 }

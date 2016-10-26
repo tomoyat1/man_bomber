@@ -156,8 +156,10 @@ int send_state_to_client(
 		perror("send_meta");
 	if (send_player(fd, pl, 4) == -1)
 		perror("send_meta");
+	fprintf(stderr, "bo_cnt = %d\n", bo_cnt);
 	if (send_bomb(fd, bo, bo_cnt) == -1)
 		perror("send_meta");
+	fprintf(stderr, "wa_cnt = %d\n", wa_cnt);
 	if (send_wall(fd, wa, wa_cnt) == -1)
 		perror("send_meta");
 }
