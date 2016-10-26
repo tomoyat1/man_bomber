@@ -16,6 +16,7 @@
 #include "man_bomber_config.h"
 #include "send-data.h"
 #include "recv-data.h"
+//#include "mainDisplay.h"
 
 #define ERROR -1
 
@@ -84,8 +85,3 @@ main(int argc, char *argv[])
 	/* finish sign */
 	
 }
-
-
-
-
-
