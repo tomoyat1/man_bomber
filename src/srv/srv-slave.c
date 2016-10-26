@@ -139,7 +139,7 @@ int send_state_to_master(int fd, int id, struct player *pl, struct bomb *bo, int
 	/* Needs error handling */
 	send_single_player(fd, pl, id);
 	for (i = 0; i < bo_cnt; i++)
-		send_single_bomb(fd, bo, id);
+		send_single_bomb(fd, &bo[i], id);
 	send_end(fd, id);
 }
 

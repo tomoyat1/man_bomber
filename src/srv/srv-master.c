@@ -435,12 +435,12 @@ struct bomb * search_bomb_by_coords(struct bomb *entry, struct list_node *head)
 	struct list_node *cur = head;
 	if (!head)
 		return NULL;
-	while (bomb_equals_node_by_coords(entry, cur) && cur->next != NULL)
+	while (cur) {
+		if (bomb_equals_node_by_coords(entry, cur))
+			return list_entry(struct bomb, cur, node);
 		cur = cur->next;
-	if (!cur->next)
-		return NULL;
-	else
-		return list_entry(struct bomb, cur, node);
+	}
+	return NULL;
 }
 
 int send_state_to_slave(int fd,
