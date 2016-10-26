@@ -14,14 +14,18 @@ configure_file (
 set(CMAKE_C_FLAGS_DEBUGE "-Wall -Wextra -g")
 
 include_directories("${PROJECT_SOURCE_DIR}/src/include/")
-add_executable(manbomber-srv src/srv/srv.c src/srv/srv-master.c
-	src/srv/srv-slave.c src/lib/magic.c src/lib/recv-data.c src/lib/list.c)
+add_executable(manbomber-srv src/srv/srv.c src/srv/srv-util.c src/srv/srv-master.c
+	src/srv/srv-slave.c src/lib/magic.c src/lib/recv-data.c src/lib/send-data.c src/lib/list.c)
 add_executable(srv_data_recv tests/srv_data_recv.c)
 add_executable(list tests/list.c src/lib/list.c)
+add_executable(bomb_equality tests/srv_bomb_equality.c src/srv/srv-master.c
+	src/srv/srv-util.c src/lib/list.c)
 target_link_libraries(manbomber-srv rt)
+target_link_libraries(bomb_equality rt)
 
 add_test(srv_data_recv ${EXECUTABLE_OUTPUT_PATH}/srv_data_recv)
 add_test(list ${EXECUTABLE_OUTPUT_PATH}/list)
+add_test(bomb_equality ${EXECUTABLE_OUTPUT_PATH}/bomb_equality)
 
 option(HOGE_FUGA "Return fuga\n to hoge\r\n" OFF)
 if(HOGE_FUGA)

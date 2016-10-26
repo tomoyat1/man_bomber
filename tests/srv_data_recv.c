@@ -24,13 +24,14 @@ int main(int argc, char **argv)
 	struct metadata data;
 	struct player players[1];
 	struct bomb bombs[10];
+	char buf[8192];
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(12345);
 	addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	connect(sock, (struct sockaddr *)&addr, sizeof(addr));
 	memset(&data, 0, sizeof(data));
-	data.id = 0xDEADBEEF;
+	data.id = 0;
 	data.player_cnt = 1;
 	data.player_offset = sizeof(struct metadata);
 	data.bomb_cnt = 10;
@@ -51,5 +52,11 @@ int main(int argc, char **argv)
 	send(sock, players, sizeof(players), 0);
 	send(sock, &bom, sizeof(int), 0);
 	send(sock, bombs, sizeof(bombs), 0);
-	return 0;
+
+	recv(sock, buf, 8192, 0);
+	if (((struct metadata *)buf)->id == 0)
+		return 0;
+	else
+		fprintf(stderr, "id: %x\n", ((struct metadata *)buf)->id);
+		return 1;
 }

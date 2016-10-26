@@ -209,7 +209,7 @@ void handle_tick(int signal)
 	for (i = 0; i < 4; i++) {
 		if (state.slave_busy[i]) {
 			send_state_to_slave(slave_socks[i],
-			    i,
+			    state.slave_pla_id[i],
 			    players,
 			    list_entry(struct bomb, bombs, node),
 			    bomb_cnt,
@@ -402,6 +402,7 @@ int master_loop(char *addr_str, int port)
 					rlen = recv_single_player(slave_socks[i], p, &id);
 					INIT_LIST_HEAD(&(p->node));
 					list_add(&(p->node), &p_wait);
+					state.slave_pla_id[i] = id;
 					break;
 				case BOM:
 					b = (struct bomb *)malloc(sizeof(struct bomb));

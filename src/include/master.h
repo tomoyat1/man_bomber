@@ -20,6 +20,7 @@
 
 struct srv_state {
 	long int tick;
+	int slave_pla_id[4];
 	int slave_busy[4];
 };
 

@@ -15,15 +15,25 @@
 
 #include "list.h"
 #include "recv-data.h"
+#include "send-data.h"
 #include "slave.h"
 #include "srv.h"
 
 int init_slave(int i);
-int recv_state_from_master(int fd,
+int recv_state_from_master(
+    int fd,
     struct metadata *data,
     struct player p[4],
     struct bomb **b,
     struct wall **w);
+int send_state_to_client(
+    int fd,
+    struct metadata *data,
+    struct player *pl,
+    struct bomb *bo,
+    int bo_cnt,
+    struct wall *wa,
+    int wa_cnt);
 int slave_loop();
 
 int init_slave(int i)
@@ -133,6 +143,25 @@ int recv_state_from_master(int fd,
 	}
 }
 
+int send_state_to_client(
+    int fd,
+    struct metadata *data,
+    struct player *pl,
+    struct bomb *bo,
+    int bo_cnt,
+    struct wall *wa,
+    int wa_cnt)
+{
+	if (send_meta(fd, data) == -1)
+		perror("send_meta");
+	if (send_player(fd, pl, 4) == -1)
+		perror("send_meta");
+	if (send_bomb(fd, bo, bo_cnt) == -1)
+		perror("send_meta");
+	if (send_wall(fd, wa, wa_cnt) == -1)
+		perror("send_meta");
+}
+
 int send_state_to_master(int fd, int id, struct player *pl, struct bomb *bo, int bo_cnt)
 {
 	int i;
@@ -225,6 +254,8 @@ int slave_loop()
 		else
 			fprintf(stderr, "recved state from master\n");
 		/* Send state to client and close */
+		send_state_to_client(client_sock, &mc, pc, bc, mc.bomb_cnt, wc, mc.wall_cnt);
+		close(client_sock);
 
 #endif /* ENABLE_HOGE_FUGA */
 
