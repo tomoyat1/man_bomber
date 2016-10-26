@@ -9,6 +9,7 @@
 #define PLA 0x18fabe0d
 #define BOM 0xdc3bae7b
 #define WAL 0x582da3c1
+#define END 0xe67cba2d
 
 /*
  * +----------------------------+

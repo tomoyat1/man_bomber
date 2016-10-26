@@ -11,6 +11,7 @@ int check_magic(int fd, int magic)
 	int val;
 	char *msg;
 	recv(fd, &val, sizeof(int), 0);
+	fprintf(stderr, "val = %x\n", val);
 	if (val == magic)
 		return 1;
 	else {
@@ -28,7 +29,8 @@ int check_magic(int fd, int magic)
 			msg = "Unknown magic";
 			break;
 		}
-		fprintf(stderr, "(Slave: %d) Magic check fail: %s\n", getpid(), msg);
+		fprintf(stderr, "(pid %d) Magic check fail: %s", getpid(), msg);
+		fprintf(stderr, " was %x\n", val);
 		return 0;
 	}
 }

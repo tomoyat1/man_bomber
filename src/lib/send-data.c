@@ -50,6 +50,8 @@ int send_bomb(int fd, struct bomb *data, int count)
 	len = 0;
 	send_len = send(fd, &bom, sizeof(int), 0);
 	len += send_len;
+	if (!data)
+		return len;
 	send_len = send(fd, data, CNT_TO_SIZE(struct bomb, count), 0);
 		if (send_len < 0) {
 			snprintf(errmsg, 64, "(Slave: %d) Bomb send error", getpid());
@@ -80,7 +82,9 @@ int send_player(int fd, struct player *data, int count)
 	len = 0;
 	send_len = send(fd, &pla, sizeof(int), 0);
 	len += send_len;
-	send_len = send(fd, data, CNT_TO_SIZE(struct player, count) - len, 0);
+	if (!data)
+		return len;
+	send_len = send(fd, data, CNT_TO_SIZE(struct player, count), 0);
 		if (send_len < 0) {
 			snprintf(errmsg,64,"(Slave: %d) Player send error",getpid());
 			perror("metadata");
@@ -110,13 +114,15 @@ int send_wall(int fd, struct wall *data, int count)
 	wal = WAL;
 	send_len = send(fd, &wal, sizeof(int), 0);
 	len += send_len;
-	send_len = send(fd, data, CNT_TO_SIZE(struct wall, count) - len, 0);
-		if (send_len < 0) {
-			snprintf(errmsg,64,"(Slave: %d) Wall send error", getpid());
-			perror("wall");
-			len = send_len;
-			goto exit;
-		}
+	if (!data)
+		return len;
+	send_len = send(fd, data, CNT_TO_SIZE(struct wall, count), 0);
+	if (send_len < 0) {
+		snprintf(errmsg,64,"(Slave: %d) Wall send error", getpid());
+		perror("wall");
+		len = send_len;
+		goto exit;
+	}
 	len += send_len;
 exit:
 	return len;
