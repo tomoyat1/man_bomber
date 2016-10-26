@@ -74,7 +74,10 @@ void init(){
 		init_pair(3,COLOR_RED,COLOR_BLACK);
 		init_pair(4,COLOR_BLACK,COLOR_RED);
 		init_pair(5,COLOR_BLACK,COLOR_GREEN);
+		init_pair(9,COLOR_WHITE,COLOR_BLACK);
 		//init_pair(6,COLOR_BLACK,COLOR_GREEN);
+
+		bkgd(COLOR_PAIR(9));
 }
 
 /* 絶対座標に変換(フィールド左上が(0,0)) */
