@@ -16,7 +16,7 @@
 #include "man_bomber_config.h"
 #include "send-data.h"
 #include "recv-data.h"
-//#include "mainDisplay.h"
+#include "mainDisplay.h"
 
 #define ERROR -1
 
@@ -39,47 +39,47 @@ main(int argc, char *argv[])
 	init();
 	while(1){
 
-	if(argc != 3){
-	fprintf(stderr, "Server IPaddress server_port\n");
-	exit(1);
-	}
+		if(argc != 3){
+			fprintf(stderr, "Server IPaddress server_port\n");
+			exit(1);
+		}
 
-	/*Socket Make*/
-	if((sd = socket(AF_INET, SOCK_STREAM, 0)) == ERROR){
-	perror("client:socket");
-	exit(1);
-	}
+		/*Socket Make*/
+		if((sd = socket(AF_INET, SOCK_STREAM, 0)) == ERROR){
+			perror("client:socket");
+			exit(1);
+		}
 
-	/* ClientProcess SocketAdress */
-	bzero((char *)&client, sizeof(client));
-	client.sin_family = AF_INET;
-	client.sin_addr.s_addr = inet_addr("127.0.0.1 ");
-	client.sin_port = htons(12345);
-	scklen = sizeof(client);
+		/* ClientProcess SocketAdress */
+		bzero((char *)&client, sizeof(client));
+		client.sin_family = AF_INET;
+		client.sin_addr.s_addr = inet_addr("127.0.0.1");
+		client.sin_port = htons(12345);
+		scklen = sizeof(client);
 
-	/* SeverProcess SocketAdress */
-	bzero((char *)&server, sizeof(server));
-	server.sin_family = AF_INET;
-	if((hp = gethostbyname(argv[1])) == NULL){
-	fprintf(stderr, "ERROR: %s unknown host. \n", argv[1]);
-	exit(1);
-	}
+		/* SeverProcess SocketAdress */
+		bzero((char *)&server, sizeof(server));
+		server.sin_family = AF_INET;
+		if((hp = gethostbyname(argv[1])) == NULL){
+			fprintf(stderr, "ERROR: %s unknown host. \n", argv[1]);
+			exit(1);
+		}
 
-	/*IP Adress*/
-	bcopy(hp->h_addr, &server.sin_addr, hp->h_length);
-	server.sin_port = htons(atoi(argv[2]));
-	scklen =sizeof(server);
+		/*IP Adress*/
+		bcopy(hp->h_addr, &server.sin_addr, hp->h_length);
+		server.sin_port = htons(atoi(argv[2]));
+		scklen =sizeof(server);
 
-	if(connect(sd, (struct sockaddr *)&server,scklen) == ERROR){
-	perror("client:connect");
-	exit(1);
-	}
+		if(connect(sd, (struct sockaddr *)&server,scklen) == ERROR){
+			perror("client:connect");
+			exit(1);
+		}
 
-	data_send(sd, data, *pla, *bo, *wa);
-	data_recv(sd, data, *pla, *bo, *wa);
-	finish = refreshAll(data, pla, bo, wa);
-	
-	if(finish == 1) break;
+		data_send(sd, data, &pla, &bo, &wa);
+		data_recv(sd, data, *pla, *bo, *wa);
+		finish = refreshAll(data, pla, bo, wa);
+
+		if(finish == 1) break;
 	}
 
 	/* finish sign */
