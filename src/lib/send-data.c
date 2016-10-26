@@ -48,8 +48,6 @@ int send_bomb(int fd, struct bomb *data, int count)
 
 	bom = BOM;
 	len = 0;
-	if (!check_magic(fd, BOM))
-		return -1;
 	send_len = send(fd, &bom, sizeof(int), 0);
 	len += send_len;
 	send_len = send(fd, data, CNT_TO_SIZE(struct bomb, count), 0);
@@ -80,8 +78,6 @@ int send_player(int fd, struct player *data, int count)
 
 	pla = PLA;
 	len = 0;
-	if (!check_magic(fd, PLA))
-		return -1;
 	send_len = send(fd, &pla, sizeof(int), 0);
 	len += send_len;
 	send_len = send(fd, data, CNT_TO_SIZE(struct player, count) - len, 0);
