@@ -7,68 +7,89 @@
 #include "man_bomber.h"
 #include "mainDisplay.h"
 
-#define WIDTH 21
-#define HEIGHT 13
-#define offsetX 4
+#define WIDTH 15
+#define HEIGHT 9
+#define offsetX 8
 #define offsetY 10
-#define xx 0
-#define yy 0
-#define FPS 15625  // sleep time in micro sec
+#define FPS 15  // sleep time in milli sec
 
-
-int x=(offsetX/2)+xx, y=(offsetY/2)+yy; 
-int bt = 0; // 起爆カウント
-bool bomb_on = false;
+int player_id;
+int client_id;
+char c;
 int kow[HEIGHT][WIDTH];
-/* 0 何もなし
+/* kow[][]=
+	 0 何もなし
 	 1 壊せない壁
 	 2 壊せる壁
 	 3 プレイヤー  
 	 4 爆弾
 */
 
+//以下デバッグ用
+int bt = 0; // 起爆カウント
+bool bomb_on = false;
+int tick=0;
+
+
 /* 破壊可能な壁をkowに登録・描画 */
-void printWall(){
-		for(int k=0; k < me->wall_cnt; k++) 
+void printWall(int wall_cnt, struct wall *wa){
+		/* 初期化 */
+		for(int i=0; i<HEIGHT; i++)
+		for(int j=0; j<WIDTH; j++) kow[i][j]=0;
+
+		for(int k=0; k<wall_cnt; k++) 
+		for(int i=0; i<HEIGHT; i++)
+		for(int j=0; j<WIDTH; j++) if(wa[k].y == i && wa[k].x == j) kow[i][j]=2;
+
+		attrset(COLOR_PAIR(5));
 		for(int i=0; i<HEIGHT; i++)
 		for(int j=0; j<WIDTH; j++){
-				if(wall[k].y == i && wall[k].x == j) kow[i][j]=2;
-				else kow[i][j]=0;
+				if(kow[i][j]==2){
+						attrset(COLOR_PAIR(5));
+						printObj(j,i,'w');
+				}
 		}
-		attrset(COLOR_PAIR(5));
-		for(int i=0; i<HEIGHT; i++){
-				for(int j=0; j<WIDTH; j++){
-						if(kow[i][j]==2)printObj(j,i,'w');
+}
+
+void printPlayer(struct player *pl){
+		for(int k=0; k<4; k++){
+				if(pl[k].is_alive == 1){
+						player_id=pl[k].id;
+						printObj(pl[k].x, pl[k].y, 'p');
 				}
 		}
 }
 
 void init(){
+		c='0';
 		initscr();
 		cbreak();
 		noecho();
 		start_color();
+		timeout(FPS);
 		curs_set(0);
-
-		setWall();
 
 		init_pair(1,COLOR_BLACK,COLOR_YELLOW);
 		init_pair(2,COLOR_BLACK,COLOR_CYAN);
 		init_pair(3,COLOR_RED,COLOR_BLACK);
 		init_pair(4,COLOR_BLACK,COLOR_RED);
 		init_pair(5,COLOR_BLACK,COLOR_GREEN);
+		init_pair(9,COLOR_WHITE,COLOR_BLACK);
+		//init_pair(6,COLOR_BLACK,COLOR_GREEN);
+
+		bkgd(COLOR_PAIR(9));
 }
 
 /* 絶対座標に変換(フィールド左上が(0,0)) */
 int toSpos(int p, char axis){
-		if(axis=='x')return p-(offsetX/2);
-		else return p-(offsetY/2);
+		if(axis=='x')return (p-offsetX)/4;
+		else return (p-offsetY)/2;
 }
 
 /* 描画用座標に変換 */
 int toGpos(int p, char axis){
-		if(axis=='x')return p*4;
-		else return p*2;
+		if(axis=='x')return p*4+offsetX;
+		else return p*2+offsetY;
 }
 
 /* フィールドを描画，kowに破壊不可のブロック座標を追加 */
@@ -84,8 +105,10 @@ void printFrame(){
 		}
 
 		attrset(COLOR_PAIR(1));
-		int Gposx = toGpos(WIDTH, 'x');
-		int Gposy = toGpos(HEIGHT, 'y');
+		//int Gposx = toGpos(WIDTH, 'x');
+		//int Gposy = toGpos(HEIGHT, 'y');
+		int Gposx=WIDTH*4;
+		int Gposy=HEIGHT*2;
 		for(int i=-2; i<Gposy+2; i++)
 		for(int j=-4; j<Gposx+4; j++){
 				if(j<0 || (Gposx-1)<j || i<0 || (Gposy-1)<i){  // 外枠
@@ -104,15 +127,15 @@ void printObj(int ax, int ay, char a){
 		switch(a){
 				case 'p':
 					attrset(COLOR_PAIR(2));
-					if(pl.id==0){
+					if(player_id==0){
 							mvprintw(ay_g, ax_g, "(^^)");
 							mvprintw(ay_g+1, ax_g, "/||\\");
-					}else if(pl.id==1){
-							mvprintw(ay_g, ax_g, "OOOO");
-							mvprintw(ay_g+1, ax_g, "OOOO");
-					}else if(pl.id==2){
-							mvprintw(ay_g, ax_g, "OOOO");
-							mvprintw(ay_g+1, ax_g, "OOOO");
+					}else if(player_id==1){
+							mvprintw(ay_g, ax_g, "(@@)");
+							mvprintw(ay_g+1, ax_g, "/||\\");
+					}else if(player_id==2){
+							mvprintw(ay_g, ax_g, "^__^");
+							mvprintw(ay_g+1, ax_g, "'||`");
 					}else{
 							mvprintw(ay_g, ax_g, "OOOO");
 							mvprintw(ay_g+1, ax_g, "OOOO");
@@ -147,7 +170,7 @@ void printObj(int ax, int ay, char a){
 		}
 }
 
-void bomb_anime(int bbx, int bby){
+void old_bomb_anime(int bbx, int bby){
 		mvprintw(2,2,"%d",bt);
 		static int bx, by;
 		if(bt==0) {
@@ -184,33 +207,63 @@ void bomb_anime(int bbx, int bby){
 		}
 }
 
-int keyInput(char c){
-		mvprintw(1,2,"(x,y)=(%d,%d)",x,y);
+void bomb_anime(int cnt, struct bomb *bo){
+		for(int k=0; k<cnt; k++){
+				if(bo[k].timer>96 || (64>bo[k].timer && bo[k].timer>32)){
+						attrset(COLOR_PAIR(3));
+						printObj(bo[k].x , bo[k].y , 'b');
+				}else if((96>=bo[k].timer && bo[k].timer>=64) || (32>=bo[k].timer && bo[k].timer>0)){
+						attrset(COLOR_PAIR(4));
+						printObj(bo[k].x , bo[k].y , 'b');
+				}else if(0>=bo[k].timer && bo[k].timer>-32){
+						attrset(COLOR_PAIR(3));
+						for(int i=1; i<bo[k].aoe; i++)
+								printObj(bo[k].x+i , bo[k].y , 'r');
+						for(int i=1; i<bo[k].aoe; i++)
+								printObj(bo[k].x-i , bo[k].y , 'l');
+						for(int i=1; i<bo[k].aoe; i++)
+								printObj(bo[k].x , bo[k].y+i , 'd');
+						for(int i=1; i<bo[k].aoe; i++)
+								printObj(bo[k].x , bo[k].y-i , 'u');
+				}
+		}
+}
+
+int keyInput(char c, struct player *pl , struct bomb *bo){
+		mvprintw(1,10,"client_id=%d",client_id);
+		mvprintw(1,2,"(x,y)=(%d,%d)",pl[client_id].x,pl[client_id].y);
+		mvprintw(2,2,"kow=%d",kow[pl[client_id].y][pl[client_id].x+1]);
 		attrset(COLOR_PAIR(2));
 		switch(c){
 				case 'w':
-					//if(kow[y-1][x] != 0) return 0;
-					y-=1;
+					if(kow[pl[client_id].y-1][pl[client_id].x] != 0 || pl[client_id].y-1<0) return 0;
+					pl[client_id].y--;
 					break;
 				case 's':
-					//if(kow[y+1][x] != 0) return 0;
-					y+=1;
+					if(kow[pl[client_id].y+1][pl[client_id].x] != 0 || pl[client_id].y+1>=HEIGHT) return 0;
+					pl[client_id].y++;
 					break;
 				case 'a':
-					//if(kow[y][x-1] != 0) return 0;
-					x-=1;
+					if(kow[pl[client_id].y][pl[client_id].x-1] != 0 || pl[client_id].x-1<0) return 0;
+					pl[client_id].x--;
 					break;
 				case 'd':
-					//if(kow[y][x+1] != 0) return 0;
-					x+=1;
+					if(kow[pl[client_id].y][pl[client_id].x+1] != 0 || pl[client_id].x+1>=WIDTH) return 0;
+					pl[client_id].x++;
 					break;
 				case ' ':
-					return 3;
+					if(pl[client_id].bombs<3){
+							pl[client_id].bombs++;
+							bo[0].x=pl[client_id].x;
+							bo[0].y=pl[client_id].y;
+							return 3;
+					}else
+							break;
 				case 'q':
 					end_flag = 1;
 					return 0;
 		}
-		printObj(x,y,'p');
+		//printObj(pl[client_id].x , pl[client_id].y , 'p');
 		return 0;
 }
 
@@ -219,28 +272,36 @@ void refreshAll(int ti){
 		char c=(char)getch();
 		clear();  // clear all
 		printFrame();  // print frame
-		ef=keyInput(c);
+		//ef=keyInput(c);
 		/* 爆弾の処理 */
-		if(ef==3) bomb_on=true;
-		if(bomb_on==true)bomb_anime(x,y);
+		//if(ef==3) bomb_on=true;
+		//if(bomb_on==true)bomb_anime(x,y);
 
 		usleep(FPS);
+}
+
+void end(){
+		endwin();
 }
 
 void new_main(struct metadata *me, struct bomb *bo, 
 							struct player *pl, struct wall *wa){
 		// bo[me->bomb_cnt-1].x
+		clear();
+		client_id = me->id;
+		//mvprintw(4,2,"client_id=%d",client_id);
+		mvprintw(5,2,"tick=%d",tick);
+		tick++;
 
-		init();
-		//clear();
 		printFrame();
-		//mvprintw(3,3,"%d",pl->id);
-		while(1){
-				if((char)getch()=='q')break;
-		}
-		endwin();
-}
+		printWall(me->wall_cnt, wa);
+		printPlayer(pl);
+		int kre = keyInput(c, pl, bo);
+		//bomb_anime(int cnt, struct bomb *bo);
 
+		c = (char)getch();
+}
+/*
 int main(){
 		init();
 
@@ -248,7 +309,7 @@ int main(){
 		timer_t tick_tm;
 		struct itimerspec tick_spec;
 		sigset_t alrm;
-		/* tick timer */
+
 		tick_ev.sigev_notify = SIGEV_SIGNAL;
 		tick_ev.sigev_signo = SIGALRM;
 		timer_create(CLOCK_REALTIME, &tick_ev, %tick_tm);
@@ -263,12 +324,8 @@ int main(){
 				pause();
 				if(end_flag==1)break;
 		}
-		/*
-		while(1){
-				if(refreshAll()==1)break;
-		}
-		*/
 		tiemr_delete(alrm);
 		endwin();
 		return 0;
 }
+*/

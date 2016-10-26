@@ -236,23 +236,19 @@ int keyInput(char c, struct player *pl , struct bomb *bo){
 		attrset(COLOR_PAIR(2));
 		switch(c){
 				case 'w':
-					if(kow[pl[client_id].y-1][pl[client_id].x] != 0) return 0;
-					//y-=1;
+					if(kow[pl[client_id].y-1][pl[client_id].x] != 0 || pl[client_id].y-1<0) return 0;
 					pl[client_id].y--;
 					break;
 				case 's':
-					if(kow[pl[client_id].y+1][pl[client_id].x] != 0) return 0;
-					//y+=1;
+					if(kow[pl[client_id].y+1][pl[client_id].x] != 0 || pl[client_id].y+1>=HEIGHT) return 0;
 					pl[client_id].y++;
 					break;
 				case 'a':
-					if(kow[pl[client_id].y][pl[client_id].x-1] != 0) return 0;
-					//x-=1;
+					if(kow[pl[client_id].y][pl[client_id].x-1] != 0 || pl[client_id].x-1<0) return 0;
 					pl[client_id].x--;
 					break;
 				case 'd':
-					if(kow[pl[client_id].y][pl[client_id].x+1] != 0) return 0;
-					//x+=1;
+					if(kow[pl[client_id].y][pl[client_id].x+1] != 0 || pl[client_id].x+1>=WIDTH) return 0;
 					pl[client_id].x++;
 					break;
 				case ' ':
