@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 3.0)
 project (man_bomber)
 set (man_bomber_VERSION_MAJOR 0)
 set (man_bomber_VERSION_MINOR 1)
@@ -29,6 +29,8 @@ add_executable(bomb_equality tests/srv_bomb_equality.c src/srv/srv-master.c
 target_link_libraries(manbomber-srv rt)
 target_link_libraries(manbomber-cli ncursesw)
 target_link_libraries(bomb_equality rt)
+
+target_compile_options(manbomber-cli PRIVATE -std=c99)
 
 add_test(srv_data_recv ${EXECUTABLE_OUTPUT_PATH}/srv_data_recv)
 add_test(list ${EXECUTABLE_OUTPUT_PATH}/list)
