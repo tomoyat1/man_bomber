@@ -108,7 +108,7 @@ void printFrame(){
 				kow[HEIGHT-1][i]=1;
 		}
 
-		attrset(COLOR_PAIR(1));
+		attrset(COLOR_PAIR(1) | A_BOLD);
 		//int Gposx = toGpos(WIDTH, 'x');
 		//int Gposy = toGpos(HEIGHT, 'y');
 		int Gposx=WIDTH*4;
@@ -141,8 +141,8 @@ void printObj(int ax, int ay, char a){
 							mvprintw(ay_g, ax_g, "^__^");
 							mvprintw(ay_g+1, ax_g, "'||`");
 					}else{
-							mvprintw(ay_g, ax_g, "OOOO");
-							mvprintw(ay_g+1, ax_g, "OOOO");
+							mvprintw(ay_g, ax_g, "(><)");
+							mvprintw(ay_g+1, ax_g, "/||\\");
 					}
 					break;
 				case 'b':
@@ -234,8 +234,6 @@ void bomb_anime(int cnt, struct bomb *bo){
 }
 
 int keyInput(char c, struct player *pl , struct bomb *bo){
-		mvprintw(1,20,"client_id=%d",client_id);
-		mvprintw(1,2,"(x,y)=(%d,%d)",pl[client_id].x,pl[client_id].y);
 		attrset(COLOR_PAIR(2));
 		switch(c){
 				case 'w':
@@ -285,9 +283,9 @@ int refreshAll(struct metadata *me, struct bomb *bo,
 		// bo[me->bomb_cnt-1].x
 		clear();
 		client_id = me->id;
-		//mvprintw(4,2,"client_id=%d",client_id);
-		mvprintw(4,2,"tick=%d",me->tick);
-		//tick++;
+		mvprintw(2,20,"client_id=%d",client_id);
+		mvprintw(2,2,"(x,y)=(%d,%d)",pl[client_id].x,pl[client_id].y);
+		mvprintw(3,2,"tick=%d",me->tick);
 
 		printFrame();
 		printWall(me->wall_cnt, wa);
