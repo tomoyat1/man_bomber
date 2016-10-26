@@ -99,6 +99,7 @@ int toGpos(int p, char axis){
 /* フィールドを描画，kowに破壊不可のブロック座標を追加 */
 void printFrame(){
 		/* 外枠のkow */
+		/*
 		for(int i=0; i<HEIGHT; i++){
 				kow[i][0]=1; 
 				kow[i][WIDTH-1]=1;
@@ -107,6 +108,7 @@ void printFrame(){
 				kow[0][i]=1;
 				kow[HEIGHT-1][i]=1;
 		}
+		*/
 
 		attrset(COLOR_PAIR(1) | A_BOLD);
 		//int Gposx = toGpos(WIDTH, 'x');
@@ -270,8 +272,8 @@ int keyInput(char c, struct player *pl , struct bomb *bo){
 
 
 void result(int res){
-		if(res==client_id) mvprintw(25,10,"ANATA KACHI");
-		else mvprintw(25,10,"ANATA MAKE");
+		if(res==client_id) mvprintw(25,10,"YOU WIN !");
+		else mvprintw(25,10,"YOU LOSE ...");
 }
 
 void end(){
@@ -290,8 +292,8 @@ int refreshAll(struct metadata *me, struct bomb *bo,
 		printFrame();
 		printWall(me->wall_cnt, wa);
 		printPlayer(pl);
+		if(me->bomb_cnt > 0) bomb_anime(int cnt, struct bomb *bo);
 		int kre = keyInput(c, pl, bo);
-		//bomb_anime(int cnt, struct bomb *bo);
 
 		c = (char)getch();
 
