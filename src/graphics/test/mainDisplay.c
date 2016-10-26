@@ -11,7 +11,7 @@
 #define HEIGHT 9
 #define offsetX 8
 #define offsetY 10
-#define FPS 33  // sleep time in milli sec
+#define FPS 15  // sleep time in milli sec
 
 int player_id;
 int client_id;
@@ -230,6 +230,7 @@ void bomb_anime(int cnt, struct bomb *bo){
 }
 
 int keyInput(char c, struct player *pl , struct bomb *bo){
+		mvprintw(1,10,"client_id=%d",client_id);
 		mvprintw(1,2,"(x,y)=(%d,%d)",pl[client_id].x,pl[client_id].y);
 		mvprintw(2,2,"kow=%d",kow[pl[client_id].y][pl[client_id].x+1]);
 		attrset(COLOR_PAIR(2));
@@ -266,7 +267,7 @@ int keyInput(char c, struct player *pl , struct bomb *bo){
 					end_flag = 1;
 					return 0;
 		}
-		printObj(pl[client_id].x , pl[client_id].y , 'p');
+		//printObj(pl[client_id].x , pl[client_id].y , 'p');
 		return 0;
 }
 
@@ -292,7 +293,7 @@ void new_main(struct metadata *me, struct bomb *bo,
 		// bo[me->bomb_cnt-1].x
 		clear();
 		client_id = me->id;
-		mvprintw(4,2,"client_id=%d",client_id);
+		//mvprintw(4,2,"client_id=%d",client_id);
 		mvprintw(5,2,"tick=%d",tick);
 		tick++;
 
