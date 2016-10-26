@@ -27,7 +27,7 @@ add_executable(bomb_equality tests/srv_bomb_equality.c src/srv/srv-master.c
 	src/srv/srv-util.c src/lib/list.c)
 
 target_link_libraries(manbomber-srv rt)
-target_link_libraries(manbomber-cli ncurseswv)
+target_link_libraries(manbomber-cli ncursesw)
 target_link_libraries(bomb_equality rt)
 
 add_test(srv_data_recv ${EXECUTABLE_OUTPUT_PATH}/srv_data_recv)
