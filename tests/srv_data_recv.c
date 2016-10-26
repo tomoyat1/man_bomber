@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 	data.bomb_cnt = 10;
 	data.bomb_offset = sizeof(struct metadata)
 	    + sizeof(struct player) * data.player_cnt;
-	data.wall_cnt = 1;
+	data.wall_cnt = 0;
 	data.wall_offset = 0;
 
 	players[0].id = 0;

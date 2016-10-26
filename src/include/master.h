@@ -20,6 +20,7 @@
 
 struct srv_state {
 	long int tick;
+	int slave_busy[4];
 };
 
 struct bomb_ptr {
@@ -31,7 +32,6 @@ static int domain_sock;
 static int inet_sock;
 static int slaves[4];
 static int slave_socks[4];
-static int slave_wait_state[4];
 
 static struct player players[4];
 static struct list_node *bombs;

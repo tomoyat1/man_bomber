@@ -36,6 +36,7 @@ int send_state_to_slave(int fd,
     struct wall *wa,
     int wa_cnt);
 struct bomb * search_bomb_by_coords(struct bomb *entry, struct list_node *head);
+int slave_ready(int i);
 void update_bombs();
 void update_players();
 
@@ -128,10 +129,11 @@ void bomb_prime(struct list_node **queue, struct list_node **hot)
 	cur = *queue;
 	while (cur) {
 		if (!search_bomb_by_coords(list_entry(struct bomb, cur, node),
-		    bombs)) {
+		    *hot)) {
 			if (b = (struct bomb *)malloc(sizeof(struct bomb))) {
+				*b = *list_entry(struct bomb, cur, node);
 				list_add(&(b->node), hot);
-				list_entry(struct bomb, b, node)->timer = FUSE;
+				b->timer = FUSE;
 			} else {
 				fprintf(stderr, "(Slave %d) Out of memory\n", getpid());
 			}
@@ -205,7 +207,7 @@ void handle_tick(int signal)
 	wall_cnt = list_count(&walls);
 
 	for (i = 0; i < 4; i++) {
-		if (slave_wait_state[i]) {
+		if (state.slave_busy[i]) {
 			send_state_to_slave(slave_socks[i],
 			    i,
 			    players,
@@ -213,7 +215,7 @@ void handle_tick(int signal)
 			    bomb_cnt,
 			    list_entry(struct wall, walls, node),
 			    wall_cnt);
-			slave_wait_state[i] = 0;
+			state.slave_busy[i] = 0;
 		}
 	}
 
@@ -332,6 +334,7 @@ int master_loop(char *addr_str, int port)
 	tick_spec.it_value.tv_nsec = 15625000;;
 	timer_settime(tick_tm, 0, &tick_spec, &tick_spec);
 
+	memset(state.slave_busy, 0, sizeof(int) * 4);
 	while (1) {
 		do {
 			FD_ZERO(&rset);
@@ -346,6 +349,10 @@ int master_loop(char *addr_str, int port)
 		} while (select_res <= 0);
 
 		if (FD_ISSET(inet_sock, &rset)) {
+			sigemptyset(&alrm);
+			state.slave_busy[i] = 1;
+			sigaddset(&alrm, SIGALRM);
+			sigprocmask(SIG_BLOCK, &alrm, NULL);
 			/*
 			 * accept(2) connection in master.
 			 * Following accept(2) call won't block.
@@ -370,19 +377,21 @@ int master_loop(char *addr_str, int port)
 			cmsg->cmsg_type = SCM_RIGHTS;
 			cmsg->cmsg_len = CMSG_LEN(sizeof(int));
 			*((int *)CMSG_DATA(cmsg)) = client_sock;
-			if (sendmsg(slave_socks[0], &msg, 0) == -1) {
+			for (i = 0; i < 4 && !slave_ready(i); i++);
+			printf("slave %d, fd = %d", i, slave_socks[i]);
+			if (sendmsg(slave_socks[i], &msg, 0) == -1) {
 				perror("master socket send");
 			}
 			close(client_sock);
+			sigprocmask(SIG_UNBLOCK, &alrm, NULL);
 		}
-		memset(slave_wait_state, 0, 4);
 		for (i = 0; i < 4; i++) {
 			int rlen;
 			if (FD_ISSET(slave_socks[i], &rset)) {
 				/* recv state from slave */
 				/* queue state change */
 				sigemptyset(&alrm);
-				slave_wait_state[i] = 1;
+				state.slave_busy[i] = 1;
 				sigaddset(&alrm, SIGALRM);
 				sigprocmask(SIG_BLOCK, &alrm, NULL);
 				switch(recv_magic(slave_socks[i])) {
@@ -475,6 +484,11 @@ int send_state_to_slave(int fd,
 		cur = cur->next;
 	}
 	send_end(fd, id);
+}
+
+int slave_ready(int i)
+{
+	return (!state.slave_busy[i]);
 }
 
 void update_bombs()

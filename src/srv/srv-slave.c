@@ -75,9 +75,9 @@ int recv_state_from_master(int fd,
 	    + data->wall_cnt * (sizeof(struct wall) + sizeof(int))
 	    + sizeof(int) /* end id */
 	    + sizeof(int) * (1 + data->player_cnt + data->bomb_cnt + data->wall_cnt);
-	fprintf(stderr, "player_cnt = %d\n", data->player_cnt);
-	fprintf(stderr, "bomb_cnt = %d\n", data->bomb_cnt);
-	fprintf(stderr, "wall_cnt = %x\n", data->wall_cnt);
+	fprintf(stderr, "player_cnt = %d\n", (int)data->player_cnt);
+	fprintf(stderr, "bomb_cnt = %d\n", (int)data->bomb_cnt);
+	fprintf(stderr, "wall_cnt = %x\n", (int)data->wall_cnt);
 	fprintf(stderr, "len = %d\n", len);
 
 
@@ -184,6 +184,7 @@ int slave_loop()
 		if ((recvmsg(master_sock, &msg, MSG_WAITALL)) == -1)
 			perror("slave domain recv");
 		client_sock = *((int *)CMSG_DATA(CMSG_FIRSTHDR(&msg)));
+		fprintf(stderr, "slave pid %d\n", getpid());
 #if ENABLE_HOGE_FUGA
 		send(client_sock, "Hello\n", 6, 0);
 		recv_len = recv(client_sock, buf, sizeof(buf), 0);
