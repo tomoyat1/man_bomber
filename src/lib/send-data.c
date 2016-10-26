@@ -28,11 +28,11 @@ int send_meta(int fd, struct metadata *data)
 		if (send_len < 0) {
 			snprintf(errmsg, 64, "(Slave: %d)Metadata send error",getpid());
 			perror("metadata");
+			len = send_len;
 			goto exit;
 		}
 	len += send_len;
 	head += send_len;
-	}
 exit:
 	return len;
 }
@@ -63,7 +63,6 @@ int send_bomb(int fd, struct bomb *data, int count)
 		}
 	len += send_len;
 	head += send_len;
-	}
 exit:
 	return len;
 }
@@ -95,7 +94,6 @@ int send_player(int fd, struct player *data, int count)
 		}
 	len += send_len;
 	head += send_len;
-	}
 exit:
 	return len;
 }
@@ -126,7 +124,6 @@ int send_wall(int fd, struct wall *data, int count)
 		}
 	len += send_len;
 	head += send_len;
-	}
 exit:
 	return len;
 }
