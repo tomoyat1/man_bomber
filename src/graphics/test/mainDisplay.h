@@ -15,8 +15,8 @@ void printObj(int ax, int ay, char a);
 void old_bomb_anime(int bbx, int bby);
 void bomb_anime(int cnt, struct bomb *bo);
 int keyInput(char c, struct player *pl , struct bomb *bo);
-void refreshAll(int ti);
-void new_main(struct metadata *me, struct bomb *bo, struct player *pl, struct wall *wa);
+void result(int res);
+int refreshAll(struct metadata *me, struct bomb *bo, struct player *pl, struct wall *wa);
 void end();
 
 

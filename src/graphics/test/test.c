@@ -6,12 +6,13 @@
 int main(){
 		struct metadata meta;
 		meta.id=0;
-		meta.wall_cnt=3;
+		meta.wall_cnt=4;
 
 		struct wall wa[3];
-		wa[0].x=3; wa[0].y=0;
-		wa[1].x=3; wa[1].y=2;
-		wa[2].x=5; wa[2].y=6;
+		wa[0].x=3; wa[0].y=0; wa[0].is_alive=1;
+		wa[1].x=3; wa[1].y=2; wa[1].is_alive=1;
+		wa[2].x=5; wa[2].y=6; wa[2].is_alive=0;
+		wa[3].x=6; wa[3].y=6; wa[3].is_alive=1;
 
 		struct player pl[4];
 		pl[0].id=0;
@@ -33,7 +34,7 @@ int main(){
 		struct bomb bo;
 		init();
 		while(1){
-			new_main(&meta, &bo, pl, wa);
+			refreshAll(&meta, &bo, pl, wa);
 			if(end_flag==1) break;
 			//usleep(15625000);
 		}

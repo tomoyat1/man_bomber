@@ -37,10 +37,13 @@ void printWall(int wall_cnt, struct wall *wa){
 		for(int i=0; i<HEIGHT; i++)
 		for(int j=0; j<WIDTH; j++) kow[i][j]=0;
 
-		for(int k=0; k<wall_cnt; k++) 
-		for(int i=0; i<HEIGHT; i++)
-		for(int j=0; j<WIDTH; j++) if(wa[k].y == i && wa[k].x == j) kow[i][j]=2;
-
+		for(int k=0; k<wall_cnt; k++){
+				if(wa[k].is_alive==1){ 
+						for(int i=0; i<HEIGHT; i++)
+						for(int j=0; j<WIDTH; j++) 
+								if( wa[k].y == i && wa[k].x == j ) kow[i][j]=2;
+				}
+		}
 		attrset(COLOR_PAIR(5));
 		for(int i=0; i<HEIGHT; i++)
 		for(int j=0; j<WIDTH; j++){
@@ -53,6 +56,7 @@ void printWall(int wall_cnt, struct wall *wa){
 
 void printPlayer(struct player *pl){
 		for(int k=0; k<4; k++){
+				if(pl[k].id<0)continue;
 				if(pl[k].is_alive == 1){
 						player_id=pl[k].id;
 						printObj(pl[k].x, pl[k].y, 'p');
@@ -230,9 +234,8 @@ void bomb_anime(int cnt, struct bomb *bo){
 }
 
 int keyInput(char c, struct player *pl , struct bomb *bo){
-		mvprintw(1,10,"client_id=%d",client_id);
+		mvprintw(1,20,"client_id=%d",client_id);
 		mvprintw(1,2,"(x,y)=(%d,%d)",pl[client_id].x,pl[client_id].y);
-		mvprintw(2,2,"kow=%d",kow[pl[client_id].y][pl[client_id].x+1]);
 		attrset(COLOR_PAIR(2));
 		switch(c){
 				case 'w':
@@ -267,31 +270,24 @@ int keyInput(char c, struct player *pl , struct bomb *bo){
 		return 0;
 }
 
-void refreshAll(int ti){
-		int ef;
-		char c=(char)getch();
-		clear();  // clear all
-		printFrame();  // print frame
-		//ef=keyInput(c);
-		/* 爆弾の処理 */
-		//if(ef==3) bomb_on=true;
-		//if(bomb_on==true)bomb_anime(x,y);
 
-		usleep(FPS);
+void result(int res){
+		if(res==client_id) mvprintw(25,10,"ANATA KACHI");
+		else mvprintw(25,10,"ANATA MAKE");
 }
 
 void end(){
 		endwin();
 }
 
-void new_main(struct metadata *me, struct bomb *bo, 
+int refreshAll(struct metadata *me, struct bomb *bo, 
 							struct player *pl, struct wall *wa){
 		// bo[me->bomb_cnt-1].x
 		clear();
 		client_id = me->id;
 		//mvprintw(4,2,"client_id=%d",client_id);
-		mvprintw(5,2,"tick=%d",tick);
-		tick++;
+		mvprintw(4,2,"tick=%d",me->tick);
+		//tick++;
 
 		printFrame();
 		printWall(me->wall_cnt, wa);
@@ -300,6 +296,20 @@ void new_main(struct metadata *me, struct bomb *bo,
 		//bomb_anime(int cnt, struct bomb *bo);
 
 		c = (char)getch();
+
+		int alive_num=0;
+		int res=-1;
+		for(int i=0; i<4; i++)
+				if(pl[i].id<0 && pl[i].is_alive==1) {
+						res=i;
+						alive_num++;
+				}
+
+		if(alive_num==1){
+				result(res);
+				return 1;
+		}
+		return 0;
 }
 /*
 int main(){
