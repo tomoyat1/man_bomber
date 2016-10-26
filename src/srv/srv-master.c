@@ -136,7 +136,9 @@ void bomb_prime(struct list_node **queue, struct list_node **hot)
 	cur = *queue;
 	while (cur) {
 		if (!search_bomb_by_coords(list_entry(struct bomb, cur, node),
-		    *hot)) {
+		    *hot)
+		    //&& validate_bomb_coords(list_entry(struct bomb, cur, node))) {
+			) {
 			if (b = (struct bomb *)malloc(sizeof(struct bomb))) {
 				*b = *list_entry(struct bomb, cur, node);
 				list_add(&(b->node), hot);
@@ -564,4 +566,24 @@ void update_players()
 			
 		cur = cur->next;
 	}
+}
+
+int validate_bomb_coords(struct bomb *b)
+{
+	int truth = 1;
+	truth &= (b->x >= 0 && b->x < 15);
+	truth &= (b->y >= 0 && b->y < 9);
+	if (!truth)
+		fprintf(stderr, "Invalid bomb coords\n");
+	return truth;
+}
+
+int validate_player_coords(struct player *p)
+{
+	int truth = 1;
+	truth &= (p->x >= 0 && p->x < 15);
+	truth &= (p->y >= 0 && p->y < 9);
+	if (!truth)
+		fprintf(stderr, "Invalid player coords\n");
+	return truth;
 }
