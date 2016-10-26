@@ -12,6 +12,7 @@ struct list_node {
 };
 
 void list_add(struct list_node *entry, struct list_node **head);
+int list_count(struct list_node **head);
 void list_remove(struct list_node *entry, struct list_node **head);
 
 #endif /* _LIST_H_ */

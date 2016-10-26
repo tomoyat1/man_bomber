@@ -9,9 +9,11 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include "list.h"
 #include "man_bomber.h"
 #include "man_bomber_config.h"
 #include "master.h"
+#include "srv.h"
 #include "slave.h"
 
 void spawn_slaves();
@@ -71,8 +73,8 @@ void spawn_slaves()
 	}
 	addr.sun_family = AF_UNIX;
 	addr_len = sizeof(addr);
-	strcpy(addr.sun_path, "/var/tmp/man-bomber-master.socket");
-	unlink("/var/tmp/man-bomber-master.socket");
+	strcpy(addr.sun_path, "/tmp/man-bomber-master.socket");
+	unlink("/tmp/man-bomber-master.socket");
 	if (bind(domain_sock, (struct sockaddr *)&addr, addr_len) == -1) {
 		perror("domain socket bind\n");
 		exit(1);
@@ -97,15 +99,15 @@ int srv_init()
 	FILE *pidfile;
 	int logfd, errfd;
 	/* pid file */
-	pidfile = fopen("/var/tmp/manbomber-srv.pid", "w+");
+	pidfile = fopen("/tmp/manbomber-srv.pid", "w+");
 	fprintf(pidfile, "%d\n", getpid());
 	fflush(pidfile);
 	fclose(pidfile);
 
 	/* fd handling */
-	logfd = open("/var/tmp/manbomber-srv.log",
+	logfd = open("/tmp/manbomber-srv.log",
 	     O_CREAT|O_WRONLY|O_APPEND, 0755);
-	errfd = open("/var/tmp/manbomber-srv.error",
+	errfd = open("/tmp/manbomber-srv.error",
 	     O_CREAT|O_WRONLY|O_APPEND, 0755);
 	close(2);
 	dup(errfd);
