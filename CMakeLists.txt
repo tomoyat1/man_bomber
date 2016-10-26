@@ -16,12 +16,18 @@ set(CMAKE_C_FLAGS_DEBUGE "-Wall -Wextra -g")
 include_directories("${PROJECT_SOURCE_DIR}/src/include/")
 add_executable(manbomber-srv src/srv/srv.c src/srv/srv-util.c src/srv/srv-master.c
 	src/srv/srv-slave.c src/lib/magic.c src/lib/recv-data.c src/lib/send-data.c src/lib/list.c)
+add_executable(manbomber-cli src/cli/cli.c src/cli/cli_recv.c
+	src/cli/cli_send.c src/graphics/mainDisplay.c src/graphics/result.c
+	src/graphics/title.c src/lib/magic.c src/lib/recv-data.c
+	src/lib/send-data.c)
 add_executable(srv_data_recv tests/srv_data_recv.c src/lib/recv-data.c
 	src/lib/magic.c)
 add_executable(list tests/list.c src/lib/list.c)
 add_executable(bomb_equality tests/srv_bomb_equality.c src/srv/srv-master.c
 	src/srv/srv-util.c src/lib/list.c)
+
 target_link_libraries(manbomber-srv rt)
+target_link_libraries(manbomber-cli ncurseswv)
 target_link_libraries(bomb_equality rt)
 
 add_test(srv_data_recv ${EXECUTABLE_OUTPUT_PATH}/srv_data_recv)
