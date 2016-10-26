@@ -565,15 +565,3 @@ void update_players()
 		cur = cur->next;
 	}
 }
-
-/* 爆弾のあたり判定 */
-bool is_crispy(struct player pla, struct bomb bom){
-		for(int i=1; i<=bom.aoe; i++){
-				if( bom.x==pla.x && (bom.y+i==pla.y || bom.y-i==pla.y) ) return true;
-				if( bom.y==pla.y && (bom.x+i==pla.x || bom.x-i==pla.x) ) return true;
-		}
-		return false;
-}
-
-
-
