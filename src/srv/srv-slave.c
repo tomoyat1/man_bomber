@@ -254,8 +254,8 @@ int slave_loop()
 		else
 			fprintf(stderr, "recved state from master\n");
 		/* Send state to client and close */
-		send_state_to_client(client_sock, &mc, pc, bc, mc.bomb_cnt, wc, mc.wall_cnt);
-		close(client_sock);
+		send_state_to_client(client_sock, &ms, ps, bs, ms.bomb_cnt, ws, ms.wall_cnt);
+		fprintf(stderr, "sent state to client\n");
 
 #endif /* ENABLE_HOGE_FUGA */
 

@@ -12,6 +12,7 @@
 
 #include "man_bomber.h"
 #include "man_bomber_config.h"
+#include "recv-data.h"
 
 int main(int argc, char **argv)
 {
@@ -24,6 +25,9 @@ int main(int argc, char **argv)
 	struct metadata data;
 	struct player players[1];
 	struct bomb bombs[10];
+	struct player *ps;
+	struct bomb *bs;
+	struct wall *ws;
 	char buf[8192];
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	addr.sin_family = AF_INET;
@@ -41,6 +45,8 @@ int main(int argc, char **argv)
 	data.wall_offset = 0;
 
 	players[0].id = 0;
+	players[0].x = 1;
+	players[0].y = 0;
 
 	for (i = 0; i < 10; i++) {
 		bombs[i].x = i;
@@ -53,10 +59,17 @@ int main(int argc, char **argv)
 	send(sock, &bom, sizeof(int), 0);
 	send(sock, bombs, sizeof(bombs), 0);
 
-	recv(sock, buf, 8192, 0);
-	if (((struct metadata *)buf)->id == 0)
-		return 0;
-	else
-		fprintf(stderr, "id: %x\n", ((struct metadata *)buf)->id);
-		return 1;
+	recv_meta(sock, &data);
+	fprintf(stderr, "player_cnt %d\n", (int)data.player_cnt);
+	fprintf(stderr, "bomb_cnt %d\n", (int)data.bomb_cnt);
+	fprintf(stderr, "wall_cnt %d\n", (int)data.wall_cnt);
+	ps = (struct player *)malloc(sizeof(struct player) * data.player_cnt);
+	printf("id = %d\n", ps[0].id);
+	bs = (struct bomb *)malloc(sizeof(struct bomb) * data.bomb_cnt);
+	ws = (struct wall *)malloc(sizeof(struct wall) * data.wall_cnt);
+	recv_player(sock, ps, data.player_cnt);
+	recv_bomb(sock, bs, data.bomb_cnt);
+	recv_wall(sock, ws, data.wall_cnt);
+	printf("is_alive %d\n", ps[0].is_alive);
+	
 }

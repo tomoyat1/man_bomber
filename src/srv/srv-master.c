@@ -134,6 +134,7 @@ void bomb_prime(struct list_node **queue, struct list_node **hot)
 				*b = *list_entry(struct bomb, cur, node);
 				list_add(&(b->node), hot);
 				b->timer = FUSE;
+				b->aoe = 3;
 			} else {
 				fprintf(stderr, "(Slave %d) Out of memory\n", getpid());
 			}
@@ -468,6 +469,7 @@ int send_state_to_slave(int fd,
 	data.player_cnt = 4;
 	data.bomb_cnt = bo_cnt;
 	data.wall_cnt = wa_cnt;
+	data.tick = state.tick;
 	send(fd, &data, sizeof(struct metadata), 0);
 
 	/* Needs error handling */
@@ -528,7 +530,10 @@ void update_players()
 		    struct player,
 		    cur,
 		    node)->id))
+			is_alive = p->is_alive;
 			*p = *list_entry(struct player, cur, node);
+			p->is_alive = is_alive;
+			
 		cur = cur->next;
 	}
 }
