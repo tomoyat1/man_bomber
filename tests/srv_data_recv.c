@@ -64,12 +64,12 @@ int actual()
 	fprintf(stderr, "bomb_cnt %d\n", (int)data.bomb_cnt);
 	fprintf(stderr, "wall_cnt %d\n", (int)data.wall_cnt);
 	ps = (struct player *)malloc(sizeof(struct player) * data.player_cnt);
-	printf("id = %d\n", ps[0].id);
 	bs = (struct bomb *)malloc(sizeof(struct bomb) * data.bomb_cnt);
 	ws = (struct wall *)malloc(sizeof(struct wall) * data.wall_cnt);
 	recv_player(sock, ps, data.player_cnt);
 	recv_bomb(sock, bs, data.bomb_cnt);
 	recv_wall(sock, ws, data.wall_cnt);
+	printf("id = %d\n", ps[0].id);
 	printf("is_alive %d\n", ps[0].is_alive);
 	return ps[0].is_alive;
 }
