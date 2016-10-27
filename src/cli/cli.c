@@ -25,6 +25,7 @@ void make_cnt(int sd, struct sockaddr_in server, struct sockaddr_in client, int 
 void main(int argc, char *argv[]){
 
 	struct metadata *data;
+	struct metadata act;
 	struct player pla[4];
 	struct bomb *bo;
 	struct wall *wa;
@@ -39,6 +40,7 @@ void main(int argc, char *argv[]){
 	int finish;
 	static int cli_id;
 	
+	data = &act;
 	/*First Connect  */
 	/*make_cnt(sd,  server, client, scklen, hp, argc, argv);
 	data->id = -1;
@@ -64,7 +66,7 @@ void main(int argc, char *argv[]){
 void make_cnt(int sd, struct sockaddr_in server, struct sockaddr_in client,
 		 int scklen, struct hostent *hp, int argc, char *argv[])
 {
-  if(argc != 3){
+  if(argc != 4){
         fprintf(stderr, "Server IPaddress server_port\n");
         exit(1);
         }
