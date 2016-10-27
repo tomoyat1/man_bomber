@@ -137,24 +137,89 @@ int send_end(int fd, int id)
 
 int send_single_bomb(int fd, struct bomb *b, int id)
 {
+	/* hack */
 	int bom = BOM;
-	if (send(fd, &bom, sizeof(int), 0) == -1)
-		return -1;
-	if (send(fd, &id, sizeof(int), 0) == -1)
-		return -1;
-	if (send(fd, b, sizeof(struct bomb), 0) == -1)
-		return -1;
+	int len;
+	int recv_len;
+	int total_len;
+	char *head;
+	total_len = 0;
+	head = (char *)&bom;
+
+	len = 0;
+	while (len < sizeof(int)) {
+		if (recv_len = send(fd, head, sizeof(int) - len, 0) == -1)
+			return -1;
+		len += recv_len;
+		head += recv_len;
+	}
+	total_len += len;
+
+	len = 0;
+	head = (char *)&id;
+	while (len < sizeof(int)) {
+		if (recv_len = send(fd, head, sizeof(int) - len, 0) == -1)
+			return -1;
+		len += recv_len;
+		head += recv_len;
+	}
+	total_len += len;
+
+	len = 0;
+	head = (char *)b;
+	while (len < sizeof(struct bomb)) {
+		if (recv_len = send(fd, head, sizeof(struct bomb) - len, 0) == -1)
+			return -1;
+		len += recv_len;
+		head += recv_len;
+	}
+	total_len += len;
+	if (total_len != sizeof(int) + sizeof(int) + sizeof(struct bomb))
+		fprintf(stderr, "send foo\n");
+	return 0;
 }
 
 int send_single_player(int fd, struct player *p, int id)
 {
+	/* hack */
 	int pla = PLA;
-	if (send(fd, &pla, sizeof(int), 0) == -1)
-		return -1;
-	if (send(fd, &id, sizeof(int), 0) == -1)
-		return -1;
-	if (send(fd, p, sizeof(struct player), 0) == -1)
-		return -1;
+	int len;
+	int recv_len;
+	int total_len;
+	char *head;
+	total_len = 0;
+	head = (char *)&pla;
+
+	len = 0;
+	while (len < sizeof(int)) {
+		if (recv_len = send(fd, head, sizeof(int) - len, 0) == -1)
+			return -1;
+		len += recv_len;
+		head += recv_len;
+	}
+	total_len += len;
+
+	len = 0;
+	head = (char *)&id;
+	while (len < sizeof(int)) {
+		if (recv_len = send(fd, head, sizeof(int) - len, 0) == -1)
+			return -1;
+		len += recv_len;
+		head += recv_len;
+	}
+	total_len += len;
+
+	len = 0;
+	head = (char *)p;
+	while (len < sizeof(struct player)) {
+		if (recv_len = send(fd, head, sizeof(struct player) - len, 0) == -1)
+			return -1;
+		len += recv_len;
+		head += recv_len;
+	}
+	total_len += len;
+	if (total_len != sizeof(int) + sizeof(int) + sizeof(struct player))
+		fprintf(stderr, "send foo\n");
 	return 0;
 }
 
