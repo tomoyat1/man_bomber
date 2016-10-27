@@ -292,7 +292,7 @@ int refreshAll(struct metadata *me, struct bomb *bo,
 		printFrame();
 		if(wa!=NULL) printWall(me->wall_cnt, wa);
 		printPlayer(pl);
-		if(me->bomb_cnt > 0) bomb_anime(int cnt, struct bomb *bo);
+		if(me->bomb_cnt > 0) bomb_anime(int me->bomb_cnt, struct bomb *bo);
 		int kre = keyInput(c, pl, bo);
 
 // 要素0に転写(間に合わせ実装)
