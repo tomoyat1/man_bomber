@@ -99,6 +99,7 @@ int toGpos(int p, char axis){
 /* フィールドを描画，kowに破壊不可のブロック座標を追加 */
 void printFrame(){
 		/* 外枠のkow */
+		/*
 		for(int i=0; i<HEIGHT; i++){
 				kow[i][0]=1; 
 				kow[i][WIDTH-1]=1;
@@ -107,8 +108,9 @@ void printFrame(){
 				kow[0][i]=1;
 				kow[HEIGHT-1][i]=1;
 		}
+		*/
 
-		attrset(COLOR_PAIR(1));
+		attrset(COLOR_PAIR(1) | A_BOLD);
 		//int Gposx = toGpos(WIDTH, 'x');
 		//int Gposy = toGpos(HEIGHT, 'y');
 		int Gposx=WIDTH*4;
@@ -141,8 +143,8 @@ void printObj(int ax, int ay, char a){
 							mvprintw(ay_g, ax_g, "^__^");
 							mvprintw(ay_g+1, ax_g, "'||`");
 					}else{
-							mvprintw(ay_g, ax_g, "OOOO");
-							mvprintw(ay_g+1, ax_g, "OOOO");
+							mvprintw(ay_g, ax_g, "(><)");
+							mvprintw(ay_g+1, ax_g, "/||\\");
 					}
 					break;
 				case 'b':
@@ -234,8 +236,6 @@ void bomb_anime(int cnt, struct bomb *bo){
 }
 
 int keyInput(char c, struct player *pl , struct bomb *bo){
-		mvprintw(1,20,"client_id=%d",client_id);
-		mvprintw(1,2,"(x,y)=(%d,%d)",pl[client_id].x,pl[client_id].y);
 		attrset(COLOR_PAIR(2));
 		switch(c){
 				case 'w':
@@ -272,8 +272,8 @@ int keyInput(char c, struct player *pl , struct bomb *bo){
 
 
 void result(int res){
-		if(res==client_id) mvprintw(25,10,"ANATA KACHI");
-		else mvprintw(25,10,"ANATA MAKE");
+		if(res==client_id) mvprintw(25,10,"YOU WIN !");
+		else mvprintw(25,10,"YOU LOSE ...");
 }
 
 void end(){
@@ -285,18 +285,20 @@ int refreshAll(struct metadata *me, struct bomb *bo,
 		// bo[me->bomb_cnt-1].x
 		clear();
 		client_id = me->id;
-		//mvprintw(4,2,"client_id=%d",client_id);
-		mvprintw(4,2,"tick=%d",me->tick);
-		//tick++;
+		mvprintw(2,20,"client_id=%d",client_id);
+		mvprintw(2,2,"(x,y)=(%d,%d)",pl[client_id].x,pl[client_id].y);
+		mvprintw(3,2,"tick=%d",me->tick);
 
 		printFrame();
-		printWall(me->wall_cnt, wa);
+		if(wa!=NULL) printWall(me->wall_cnt, wa);
 		printPlayer(pl);
+		if(me->bomb_cnt > 0) bomb_anime(int cnt, struct bomb *bo);
 		int kre = keyInput(c, pl, bo);
-		//bomb_anime(int cnt, struct bomb *bo);
+
+// 要素0に転写(間に合わせ実装)
+		if(client_id != 0) pl[0] = pl[client_id];
 
 		c = (char)getch();
-
 		int alive_num=0;
 		int res=-1;
 		for(int i=0; i<4; i++)
