@@ -293,7 +293,10 @@ int refreshAll(struct metadata *me, struct bomb *bo,
 		if(wa!=NULL) printWall(me->wall_cnt, wa);
 		printPlayer(pl);
 		if(me->bomb_cnt > 0) bomb_anime(me->bomb_cnt, bo);
-		int kre = keyInput(c, pl, bo);
+		int reIn = keyInput(c, pl, bo);
+		if(reIn==3)
+				me->bomb_cnt = 1;
+		else me->bomb_cnt = 0;
 
 // 要素0に転写(間に合わせ実装)
 		if(client_id != 0) pl[0] = pl[client_id];
