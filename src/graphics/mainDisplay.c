@@ -295,8 +295,10 @@ int refreshAll(struct metadata *me, struct bomb *bo,
 		if(me->bomb_cnt > 0) bomb_anime(int cnt, struct bomb *bo);
 		int kre = keyInput(c, pl, bo);
 
-		c = (char)getch();
+// 要素0に転写(間に合わせ実装)
+		if(client_id != 0) pl[0] = pl[client_id];
 
+		c = (char)getch();
 		int alive_num=0;
 		int res=-1;
 		for(int i=0; i<4; i++)
