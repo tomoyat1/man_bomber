@@ -25,7 +25,7 @@ int data_send(int sd, struct metadata *data, struct player **pla, struct bomb **
         msg_len += send_len;
 
         *pla = (struct player *)malloc(sizeof(struct player));
-        send_len = send_player(sd, *pla, data->player_cnt);
+        send_len = send_player(sd, *pla, 1);
 	 msg_len += send_len;
 	free(*pla);
 
