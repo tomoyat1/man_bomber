@@ -22,7 +22,7 @@
 
 void make_cnt(int sd, struct sockaddr_in server, struct sockaddr_in client, int scklen, struct hostent *hp, int argc, char *argv[]);
 	
-void main(int argc, char *argv[]){
+int main(int argc, char *argv[]){
 
 	struct metadata *data;
 	struct metadata act;
