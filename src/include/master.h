@@ -17,11 +17,9 @@
 
 #define FUSE 128
 #define EXPLOSION_LEN 32
-#define DEST_WALLS 107
 
 struct srv_state {
 	long int tick;
-	int rng;
 	int slave_pla_id[4];
 	int slave_busy[4];
 };

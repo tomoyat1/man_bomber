@@ -28,11 +28,8 @@ void connect_to_slave(int i);
 int count_players();
 void handle_tick(int signal);
 void init_game_server();
-int is_blocked(struct player *pla, struct list_node *wal);
-int is_coord_blocked(int x, int y, struct list_node *wal);
 int is_crispy(struct player *pla, struct bomb *bom);
 void kill_player(struct player *p);
-unsigned int random_int();
 int send_state_to_slave(int fd,
     int id,
     struct player *pl,
@@ -44,10 +41,6 @@ struct bomb * search_bomb_by_coords(struct bomb *entry, struct list_node *head);
 int slave_ready(int i);
 void update_bombs();
 void update_players();
-int validate_bomb_coords(struct bomb *b);
-int validate_player_coords(struct player *p);
-int validate_destructable_wall_coords(int x, int y);
-int validate_wall_coords(struct player *p);
 
 void bomb_clean(struct list_node **gone, struct list_node **hot)
 {
@@ -143,9 +136,7 @@ void bomb_prime(struct list_node **queue, struct list_node **hot)
 	cur = *queue;
 	while (cur) {
 		if (!search_bomb_by_coords(list_entry(struct bomb, cur, node),
-		    *hot)
-		    //&& validate_bomb_coords(list_entry(struct bomb, cur, node))) {
-			) {
+		    *hot)) {
 			if (b = (struct bomb *)malloc(sizeof(struct bomb))) {
 				*b = *list_entry(struct bomb, cur, node);
 				list_add(&(b->node), hot);
@@ -243,11 +234,6 @@ void handle_tick(int signal)
 void init_game_server()
 {
 	int i;
-	int dest_walls;
-	int wal_x, wal_y;
-	struct wall *new_wal;
-	/* Open /dev/urandom */
-	state.rng = open("/dev/urandom", O_RDONLY);
 	/* Initialize game state lists */
 	bombs = NULL;
 	walls = NULL;
@@ -257,35 +243,7 @@ void init_game_server()
 	/* For testing: will assign id to new clients upon connection in the future */
 	for (i = 0; i < 4; i++)
 		players[i].id = i;
-	/* Assign starting positions statically for players 0 to 3 in this init phase */
-	players[0].x = 0;
-	players[0].y = 0;
-	players[1].x = 14;
-	players[1].y = 0;
-	players[2].x = 0;
-	players[2].y = 8;
-	players[3].x = 14;
-	players[3].y = 8;
-
-	/* Initialize destructable walls */
-	/*
-	dest_walls = DEST_WALLS;
-	while (dest_walls) {
-		wal_x = random_int() % 15;
-		wal_y = random_int() % 9;
-		fprintf(stderr, "x: %d, y: %d\n", wal_x, wal_y);
-		if (validate_destructable_wall_coords(wal_x, wal_y)
-		    && !is_coord_blocked(wal_x, wal_y, walls)) {
-			new_wal = (struct wall *)malloc(sizeof(struct wall));
-			new_wal->x = wal_x;
-			new_wal->y = wal_y;
-			INIT_LIST_HEAD(&new_wal->node);
-			list_add(&new_wal->node, &walls);
-			fprintf(stderr, "inc walls\n");
-			dest_walls--;
-		}
-	}
-	*/
+	/* Todo: Assign starting positions statically for players 0 to 3 in this init phase */
 
 	/* Initialize wait lists */
 	p_wait = NULL;
@@ -294,35 +252,6 @@ void init_game_server()
 
 	/* Initialize tick count */
 	state.tick = 0;
-}
-
-/* Destructable wall validation */
-int is_blocked(struct player *pla, struct list_node *wal)
-{
-	int truth = 0;
-	struct list_node *cur;
-	struct bomb *curb;
-	cur = wal;
-	while (cur) {
-		curb = list_entry(struct bomb, cur, node);
-		truth |= (pla->x == curb->x && pla->y == curb->y);
-		cur = cur->next;
-	}
-	return truth;
-}
-
-int is_coord_blocked(int x, int y, struct list_node *wal)
-{
-	int truth = 0;
-	struct list_node *cur;
-	struct bomb *curb;
-	cur = wal;
-	while (cur) {
-		curb = list_entry(struct bomb, cur, node);
-		truth |= (x == curb->x && y == curb->y);
-		cur = cur->next;
-	}
-	return truth;
 }
 
 /* 爆弾のあたり判定 */
@@ -339,13 +268,6 @@ int is_crispy(struct player *pla, struct bomb *bom)
 void kill_player(struct player *p)
 {
 	p->is_alive = 0;
-}
-
-unsigned int random_int()
-{
-	int rn;
-	read(state.rng, &rn, sizeof(int));
-	return rn;
 }
 
 
@@ -612,6 +534,18 @@ void update_bombs()
 	/* KABOOM BABY!! ...well actually, called for every tick a bomb is burning */
 	bomb_kaboom(&burning, &bombs);
 	bomb_clean(&gone, &bombs);
+	/*
+	if (bombs) {
+		foo[0] = list_entry(struct bomb, bombs, node);
+		foo[1] = list_entry(struct bomb, foo[0]->node.next, node);
+		foo[2] = list_entry(struct bomb, foo[1]->node.next, node);
+		//foo[3] = list_entry(struct bomb, foo[2]->node.next, node);
+		printf("ticks for bomb[0]: %d\n", foo[0]->timer);
+		printf("ticks for bomb[1]: %d\n", foo[1]->timer);
+		//printf("ticks for bomb[2]: %d\n", foo[2]->timer);
+		//printf("ticks for bomb[3]: %d\n", foo[3]->timer);
+	}
+	*/
 }
 
 void update_players()
@@ -620,68 +554,14 @@ void update_players()
 	int search_id;
 	struct list_node *cur;
 	struct player *p;
-	struct player *queue_p;
 	cur = p_wait;
 	while (cur) {
-		queue_p = list_entry(struct player, cur, node);
-		if (!validate_player_coords(queue_p) || is_blocked(queue_p, walls)) {
-			cur = cur->next;
-			continue;
-		}
-		search_id = queue_p->id;
-		if (p = player_in_state(search_id)) {
+		search_id = list_entry(struct player, cur, node)->id;
+		if (p = player_in_state(search_id))
 			is_alive = players[search_id].is_alive;
 			*p = *list_entry(struct player, cur, node);
 			p->is_alive = is_alive;
-		}
+			
 		cur = cur->next;
 	}
-}
-
-int validate_bomb_coords(struct bomb *b)
-{
-	int truth = 1;
-	truth &= (b->x >= 0 && b->x < 15);
-	truth &= (b->y >= 0 && b->y < 9);
-	truth &= !(b->x % 2 && b->y % 2);
-	if (!truth)
-		fprintf(stderr, "Invalid bomb coords\n");
-	return truth;
-}
-
-int validate_destructable_wall_coords(int x, int y)
-{
-	int truth = 1;
-	truth &= (x >= 0 && x < 15);
-	truth &= (y >= 0 && y < 9);
-	truth &= !(x % 2 && y % 2);
-	truth &= !(x == 0 && (y == 0 || y == 1) && x == 1 && y == 0);
-	truth &= !(x == 14 && (y == 0 || y == 1) && x == 13 && y == 0);
-	truth &= !(x == 14 && (y == 8 || y == 7) && x == 13 && y == 8);
-	truth &= !(x == 0 && (y == 8 || y == 7) && x == 1 && y == 8);
-	if (!truth)
-		fprintf(stderr, "Invalid coords\n");
-	return truth;
-}
-
-int validate_player_coords(struct player *p)
-{
-	int truth = 1;
-	truth &= (p->x >= 0 && p->x < 15);
-	truth &= (p->y >= 0 && p->y < 9);
-	truth &= !(p->x % 2 && p->y % 2);
-	if (!truth)
-		fprintf(stderr, "Invalid player coords\n");
-	return truth;
-}
-
-int validate_wall_coords(struct player *p)
-{
-	int truth = 1;
-	truth &= (p->x >= 0 && p->x < 15);
-	truth &= (p->y >= 0 && p->y < 9);
-	truth &= !(p->x % 2 && p->y % 2);
-	if (!truth)
-		fprintf(stderr, "Invalid wall coords\n");
-	return truth;
 }
