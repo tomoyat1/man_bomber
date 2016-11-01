@@ -44,7 +44,7 @@ int recv_single_bomb(int fd, struct bomb *buf, int *id)
 	char *head;
 	head = (char *)id;
 	while (len < sizeof(int)) {
-		if (recv_len = recv(fd, head, sizeof(int) - len, 0) == -1)
+		if ((recv_len = recv(fd, head, sizeof(int) - len, 0)) == -1)
 			return -1;
 		len += recv_len;
 		head += recv_len;
@@ -54,14 +54,12 @@ int recv_single_bomb(int fd, struct bomb *buf, int *id)
 	head = (char *)buf;
 	len = 0;
 	while (len < sizeof(struct bomb)) {
-		if (recv_len = recv(fd, head, sizeof(struct bomb) - len, 0) == -1)
+		if ((recv_len = recv(fd, head, sizeof(struct bomb) - len, 0)) == -1)
 			return -1;
 		len += recv_len;
 		head += recv_len;
 	}
 	total_len += len;
-	if (total_len != sizeof(int) + sizeof(struct bomb))
-		fprintf(stderr, "foo\n");
 
 	return total_len;
 }
@@ -74,7 +72,7 @@ int recv_single_player(int fd, struct player *buf, int *id)
 	char *head;
 	head = (char *)id;
 	while (len < sizeof(int)) {
-		if (recv_len = recv(fd, head, sizeof(int) - len, 0) == -1)
+		if ((recv_len = recv(fd, head, sizeof(int) - len, 0)) == -1)
 			return -1;
 		len += recv_len;
 		head += recv_len;
@@ -84,14 +82,12 @@ int recv_single_player(int fd, struct player *buf, int *id)
 	head = (char *)buf;
 	len = 0;
 	while (len < sizeof(struct player)) {
-		if (recv_len = recv(fd, head, sizeof(struct player) - len, 0) == -1)
+		if ((recv_len = recv(fd, head, sizeof(struct player) - len, 0)) == -1)
 			return -1;
 		len += recv_len;
 		head += recv_len;
 	}
 	total_len += len;
-	if (total_len != sizeof(int) + sizeof(struct player))
-		fprintf(stderr, "foo\n");
 
 	return total_len;
 }
@@ -104,7 +100,7 @@ int recv_single_wall(int fd, struct wall *buf, int *id)
 	char *head;
 	head = (char *)id;
 	while (len < sizeof(int)) {
-		if (recv_len = recv(fd, head, sizeof(int) - len, 0) == -1)
+		if ((recv_len = recv(fd, head, sizeof(int) - len, 0)) == -1)
 			return -1;
 		len += recv_len;
 		head += recv_len;
@@ -114,14 +110,12 @@ int recv_single_wall(int fd, struct wall *buf, int *id)
 	head = (char *)buf;
 	len = 0;
 	while (len < sizeof(struct bomb)) {
-		if (recv_len = recv(fd, head, sizeof(struct bomb) - len, 0) == -1)
+		if ((recv_len = recv(fd, head, sizeof(struct bomb) - len, 0)) == -1)
 			return -1;
 		len += recv_len;
 		head += recv_len;
 	}
 	total_len += len;
-	if (total_len != sizeof(int) + sizeof(struct player))
-		fprintf(stderr, "foo\n");
 
 	return total_len;
 }
@@ -137,132 +131,34 @@ int send_end(int fd, int id)
 
 int send_single_bomb(int fd, struct bomb *b, int id)
 {
-	/* hack */
-	int bom = BOM;
-	int len;
-	int recv_len;
-	int total_len;
-	char *head;
-	total_len = 0;
-	head = (char *)&bom;
-
-	len = 0;
-	while (len < sizeof(int)) {
-		if (recv_len = send(fd, head, sizeof(int) - len, 0) == -1)
-			return -1;
-		len += recv_len;
-		head += recv_len;
-	}
-	total_len += len;
-
-	len = 0;
-	head = (char *)&id;
-	while (len < sizeof(int)) {
-		if (recv_len = send(fd, head, sizeof(int) - len, 0) == -1)
-			return -1;
-		len += recv_len;
-		head += recv_len;
-	}
-	total_len += len;
-
-	len = 0;
-	head = (char *)b;
-	while (len < sizeof(struct bomb)) {
-		if (recv_len = send(fd, head, sizeof(struct bomb) - len, 0) == -1)
-			return -1;
-		len += recv_len;
-		head += recv_len;
-	}
-	total_len += len;
-	if (total_len != sizeof(int) + sizeof(int) + sizeof(struct bomb))
-		fprintf(stderr, "send foo\n");
-	return 0;
+	int  bom = BOM;
+	if (send(fd, &bom, sizeof(int), 0) == -1)
+		return -1;
+	if (send(fd, &id, sizeof(int), 0) == -1)
+		return -1;
+	if (send(fd, b, sizeof(struct bomb), 0) == -1)
+		return -1;
 }
 
 int send_single_player(int fd, struct player *p, int id)
 {
-	/* hack */
 	int pla = PLA;
-	int len;
-	int recv_len;
-	int total_len;
-	char *head;
-	total_len = 0;
-	head = (char *)&pla;
-
-	len = 0;
-	while (len < sizeof(int)) {
-		if (recv_len = send(fd, head, sizeof(int) - len, 0) == -1)
-			return -1;
-		len += recv_len;
-		head += recv_len;
-	}
-	total_len += len;
-
-	len = 0;
-	head = (char *)&id;
-	while (len < sizeof(int)) {
-		if (recv_len = send(fd, head, sizeof(int) - len, 0) == -1)
-			return -1;
-		len += recv_len;
-		head += recv_len;
-	}
-	total_len += len;
-
-	len = 0;
-	head = (char *)p;
-	while (len < sizeof(struct player)) {
-		if (recv_len = send(fd, head, sizeof(struct player) - len, 0) == -1)
-			return -1;
-		len += recv_len;
-		head += recv_len;
-	}
-	total_len += len;
-	if (total_len != sizeof(int) + sizeof(int) + sizeof(struct player))
-		fprintf(stderr, "send foo\n");
+	if (send(fd, &pla, sizeof(int), 0) == -1)
+		return -1;
+	if (send(fd, &id, sizeof(int), 0) == -1)
+		return -1;
+	if (send(fd, p, sizeof(struct player), 0) == -1)
+		return -1;
 	return 0;
 }
 
 int send_single_wall(int fd, struct wall *w, int id)
 {
-	/* hack */
-	int wal = WAL;
-	int len;
-	int recv_len;
-	int total_len;
-	char *head;
-	total_len = 0;
-	head = (char *)&wal;
-
-	len = 0;
-	while (len < sizeof(int)) {
-		if (recv_len = send(fd, head, sizeof(int) - len, 0) == -1)
-			return -1;
-		len += recv_len;
-		head += recv_len;
-	}
-	total_len += len;
-
-	len = 0;
-	head = (char *)&id;
-	while (len < sizeof(int)) {
-		if (recv_len = send(fd, head, sizeof(int) - len, 0) == -1)
-			return -1;
-		len += recv_len;
-		head += recv_len;
-	}
-	total_len += len;
-
-	len = 0;
-	head = (char *)w;
-	while (len < sizeof(struct wall)) {
-		if (recv_len = send(fd, head, sizeof(struct wall) - len, 0) == -1)
-			return -1;
-		len += recv_len;
-		head += recv_len;
-	}
-	total_len += len;
-	if (total_len != sizeof(int) + sizeof(int) + sizeof(struct wall))
-		fprintf(stderr, "send foo\n");
-	return 0;
+	int  bom = BOM;
+	if (send(fd, &bom, sizeof(int), 0) == -1)
+		return -1;
+	if (send(fd, &id, sizeof(int), 0) == -1)
+		return -1;
+	if (send(fd, w, sizeof(struct bomb), 0) == -1)
+		return -1;
 }
