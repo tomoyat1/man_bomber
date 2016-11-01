@@ -90,7 +90,6 @@ int recv_state_from_master(int fd,
 	fprintf(stderr, "wall_cnt = %x\n", (int)data->wall_cnt);
 	fprintf(stderr, "len = %d\n", len);
 
-
 	for (i = 0; i < 4; i++)
 		p[i].id = -1;
 	while (len > 0) {
